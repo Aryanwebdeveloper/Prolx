@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 
@@ -11,6 +12,7 @@ const navLinks = [
   { label: "Team", href: "/team" },
   { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Certificates", href: "/certificates" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -35,15 +37,7 @@ export default function ProlxNavbar() {
       <div className="container mx-auto px-4 flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#0D9488] flex items-center justify-center">
-            <span className="text-white font-bold text-sm font-mono">Px</span>
-          </div>
-          <span
-            className="text-[#0F172A] font-bold text-xl"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Prolx
-          </span>
+          <Image src="/ProLx_withoutBackground.png" alt="Prolx Logo" width={160} height={50} className="w-auto h-8" priority />
         </Link>
 
         {/* Desktop Nav */}

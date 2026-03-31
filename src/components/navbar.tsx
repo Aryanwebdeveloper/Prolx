@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '../../supabase/server'
 import { Button } from './ui/button'
 import { User, UserCircle } from 'lucide-react'
@@ -13,8 +14,8 @@ export default async function Navbar() {
   return (
     <nav className="w-full border-b border-gray-200 bg-white py-2">
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/" prefetch className="text-xl font-bold">
-          Logo
+        <Link href="/" prefetch className="text-xl font-bold flex items-center">
+          <Image src="/ProLx_withoutBackground.png" alt="Logo" width={160} height={50} className="w-auto h-8" priority />
         </Link>
         <div className="flex gap-4 items-center">
           {user ? (

@@ -71,12 +71,16 @@ function generateDates() {
   return dates;
 }
 
+import { submitConsultation } from "./actions";
+
 export default function BookConsultationPage() {
   const [step, setStep] = useState(1);
   const [type, setType] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -88,8 +92,25 @@ export default function BookConsultationPage() {
 
   const dates = generateDates();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    
+    const { error: submitError } = await submitConsultation({
+      ...form,
+      type,
+      date: selectedDate,
+      time: selectedTime,
+    });
+    
+    setIsSubmitting(false);
+    
+    if (submitError) {
+      setError(submitError.message);
+      return;
+    }
+    
     setSubmitted(true);
   };
 
@@ -169,6 +190,18 @@ export default function BookConsultationPage() {
             Schedule a call with our team to discuss your project. No
             commitments — just a conversation about your goals.
           </p>
+
+          {error && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600 max-w-xl animate-in fade-in slide-in-from-top-2">
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-xs font-bold">
+                !
+              </div>
+              <div>
+                <p className="text-sm font-bold">Booking Error</p>
+                <p className="text-xs opacity-80">{error}</p>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -472,9 +505,11 @@ export default function BookConsultationPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-3 bg-[#0D9488] text-white rounded-lg font-semibold hover:bg-[#0F766E] transition-all"
+                  disabled={isSubmitting}
+                  className="px-8 py-3 bg-[#0D9488] text-white rounded-lg font-semibold hover:bg-[#0F766E] disabled:bg-opacity-70 transition-all flex items-center gap-2"
                 >
-                  Confirm Booking
+                  {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {isSubmitting ? "Confirming..." : "Confirm Booking"}
                 </button>
               </div>
             </form>

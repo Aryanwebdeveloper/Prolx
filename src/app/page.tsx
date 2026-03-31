@@ -9,6 +9,8 @@ import ProcessSection from "@/components/home/process-section";
 import PortfolioPreview from "@/components/home/portfolio-preview";
 import TestimonialsSection from "@/components/home/testimonials-section";
 import IndustriesTechSection from "@/components/home/industries-tech";
+import CertVerifyBanner from "@/components/home/cert-verify-banner";
+import BookingSection from "@/components/home/booking-section";
 import CTABanner from "@/components/home/cta-banner";
 import BackToTop from "@/components/back-to-top";
 
@@ -25,6 +27,8 @@ export default function Home() {
       <PortfolioPreview />
       <TestimonialsSection />
       <IndustriesTechSection />
+      <BookingSection />
+      <CertVerifyBanner />
       <CTABanner />
       <ProlxFooter />
       <BackToTop />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Twitter,
   Linkedin,
@@ -20,15 +21,7 @@ export default function ProlxFooter() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[#0D9488] flex items-center justify-center">
-                <span className="text-white font-bold text-sm font-mono">Px</span>
-              </div>
-              <span
-                className="text-white font-bold text-xl"
-                style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-              >
-                Prolx
-              </span>
+              <Image src="/ProLx_withoutBackground.png" alt="Prolx Logo" width={160} height={50} className="w-auto h-8" />
             </Link>
             <p className="text-[#94A3B8] text-sm leading-relaxed mb-6">
               Premium digital agency building exceptional web experiences, mobile

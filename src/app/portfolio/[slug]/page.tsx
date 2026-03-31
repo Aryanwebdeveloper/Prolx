@@ -1,424 +1,307 @@
-"use client";
-
+import { getCaseStudyBySlug, getPortfolioProjects } from "@/app/portfolio-actions";
 import ProlxNavbar from "@/components/prolx-navbar";
 import ProlxFooter from "@/components/prolx-footer";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
-import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ChevronRight, CheckCircle2, Target, Lightbulb, Code2, BarChart3, Palette, Globe, ExternalLink, Github, ArrowRight } from "lucide-react";
 
-const caseStudies = [
-  {
-    slug: "finedge-banking-app",
-    title: "FinEdge Banking App",
-    client: "FinEdge Technologies",
-    industry: "Fintech",
-    heroImg: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80",
-    background:
-      "FinEdge Technologies is a fast-growing fintech startup aiming to modernize personal banking for the South Asian market. With legacy systems slowing them down and customer churn rising, they needed a complete digital transformation — starting with a modern mobile banking platform.",
-    challenges: [
-      "Legacy banking infrastructure with 10+ year old codebase",
-      "Customer churn rate of 35% due to poor mobile experience",
-      "Regulatory compliance requirements across multiple jurisdictions",
-      "Real-time transaction processing with zero downtime tolerance",
-      "Biometric authentication integration for enhanced security",
-    ],
-    strategy:
-      "We conducted a comprehensive 2-week discovery phase including stakeholder interviews, competitor analysis, and user research with 200+ existing customers. Our strategy centered on building a modular, microservices architecture that could integrate with existing backend systems while providing a dramatically improved frontend experience.",
-    designProcess:
-      "Our UX team created detailed user journey maps for 12 critical banking flows including account opening, fund transfers, bill payments, and investment tracking. We designed a clean, trust-inducing interface with the bank's brand colors, focusing on accessibility and ease of use for a broad demographic range. The design system included 80+ components with light and dark mode variants.",
-    development:
-      "Built using React Native for cross-platform mobile delivery with a Node.js/PostgreSQL backend. We implemented real-time WebSocket connections for live transaction updates, integrated biometric authentication (Face ID / fingerprint), and built a custom notification system. The architecture supports 50,000+ concurrent users with sub-200ms response times.",
-    techs: ["React Native", "Node.js", "PostgreSQL", "Redis", "AWS", "Docker", "Stripe"],
-    metrics: [
-      { label: "User Growth", value: "+300%", desc: "in 6 months" },
-      { label: "App Rating", value: "4.8★", desc: "on App Store" },
-      { label: "Load Time", value: "1.2s", desc: "average" },
-      { label: "Churn Rate", value: "-60%", desc: "reduction" },
-    ],
-    screenshots: [
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80",
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80",
-      "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=600&q=80",
-    ],
-  },
-  {
-    slug: "bloom-ecommerce",
-    title: "Bloom E-commerce Store",
-    client: "Bloom Retail",
-    industry: "E-commerce",
-    heroImg: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80",
-    background:
-      "Bloom Retail is a fast-fashion brand targeting young professionals across the Middle East. Their existing Magento store was slow, difficult to manage, and underperforming in search results. They needed a modern, conversion-optimized e-commerce platform that could handle flash sales and rapid inventory changes.",
-    challenges: [
-      "Magento store with 8+ second load times killing conversions",
-      "No mobile optimization — 70% of traffic was mobile",
-      "Complex inventory management across 3 warehouses",
-      "Poor SEO — organic traffic was declining 15% quarterly",
-      "No email marketing or customer retention strategy",
-    ],
-    strategy:
-      "We proposed a complete platform migration from Magento to a headless commerce architecture using Next.js for the frontend and Shopify Plus for inventory and order management. This allowed us to build a blazing-fast, SEO-optimized storefront while retaining powerful backend capabilities.",
-    designProcess:
-      "We analyzed heatmaps and session recordings from 10,000+ user sessions to identify UX bottlenecks. The redesign focused on reducing checkout friction from 7 steps to 3, implementing quick-view product cards, and creating a visually stunning lookbook-style category browsing experience.",
-    development:
-      "The frontend was built with Next.js using ISR for product pages, achieving sub-1-second page loads. We implemented Algolia-powered instant search, Stripe payment processing with local payment methods, and a custom recommendation engine. The checkout flow was optimized with address autocomplete and one-tap payments.",
-    techs: ["Next.js", "Shopify Plus", "Stripe", "Algolia", "Cloudflare", "Klaviyo"],
-    metrics: [
-      { label: "Traffic Growth", value: "+240%", desc: "organic traffic" },
-      { label: "Page Speed", value: "98", desc: "PageSpeed score" },
-      { label: "Conversion Rate", value: "+180%", desc: "improvement" },
-      { label: "Revenue Growth", value: "2x", desc: "in 3 months" },
-    ],
-    screenshots: [
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80",
-      "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&q=80",
-      "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80",
-    ],
-  },
-  {
-    slug: "medcare-patient-portal",
-    title: "MedCare Patient Portal",
-    client: "MedCare Solutions",
-    industry: "Healthcare",
-    heroImg: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&q=80",
-    background:
-      "MedCare Solutions operates a network of 25 clinics across Pakistan. They needed a unified patient portal that would allow patients to book appointments, access medical records, and communicate with doctors — all while maintaining HIPAA-equivalent data security.",
-    challenges: [
-      "No digital patient management — everything was paper-based",
-      "Patient no-show rate of 30% costing millions annually",
-      "Doctors overwhelmed by administrative tasks",
-      "No secure communication channel between patients and providers",
-      "Integration needed with 3 different EMR systems",
-    ],
-    strategy:
-      "We designed a phased rollout strategy — starting with appointment scheduling, then adding medical records access, telemedicine, and finally a patient health tracking module. This allowed the clinics to adopt the system gradually without disrupting operations.",
-    designProcess:
-      "Accessibility was our north star. We designed for patients aged 18–80 with varying levels of tech literacy. Large touch targets, high-contrast text, multi-language support (English, Urdu), and a simplified navigation structure ensured universal usability. Extensive user testing with actual patients refined the experience.",
-    development:
-      "Built with React and Supabase for real-time data synchronization. We implemented end-to-end encryption for medical records, video conferencing via WebRTC for telemedicine consultations, and a custom notification system for appointment reminders. The portal integrates with three different EMR systems via HL7 FHIR APIs.",
-    techs: ["React", "Supabase", "TypeScript", "WebRTC", "HL7 FHIR", "AWS"],
-    metrics: [
-      { label: "No-Show Rate", value: "-65%", desc: "reduction" },
-      { label: "Patient Satisfaction", value: "96%", desc: "approval" },
-      { label: "Admin Time Saved", value: "40hrs", desc: "per week" },
-      { label: "Active Users", value: "15K+", desc: "patients" },
-    ],
-    screenshots: [
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80",
-      "https://images.unsplash.com/photo-1551076805-e1869033e561?w=600&q=80",
-      "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&q=80",
-    ],
-  },
-];
+export default async function CaseStudyPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const { data: caseStudy, error } = await getCaseStudyBySlug(slug);
 
-export default function CaseStudyPage() {
-  const params = useParams();
-  const slug = params.slug as string;
-  const study = caseStudies.find((s) => s.slug === slug);
-  const currentIndex = caseStudies.findIndex((s) => s.slug === slug);
-
-  if (!study) {
-    return (
-      <div className="min-h-screen bg-white">
-        <ProlxNavbar />
-        <div className="pt-28 pb-20 text-center container mx-auto px-4">
-          <h1
-            className="text-4xl font-bold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Case Study Not Found
-          </h1>
-          <p className="text-[#64748B] mb-6">
-            The case study you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Link
-            href="/portfolio"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D9488] text-white rounded-lg font-semibold hover:bg-[#0F766E] transition-colors"
-          >
-            Back to Portfolio
-          </Link>
-        </div>
-        <ProlxFooter />
-      </div>
-    );
+  if (!caseStudy) {
+    notFound();
   }
 
-  const prev = currentIndex > 0 ? caseStudies[currentIndex - 1] : null;
-  const next = currentIndex < caseStudies.length - 1 ? caseStudies[currentIndex + 1] : null;
+  const { data: allProjects } = await getPortfolioProjects();
+  const currentIndex = allProjects?.findIndex((p: any) => p.slug === caseStudy.portfolio_projects.slug) ?? -1;
+  const nextProject = currentIndex !== -1 && allProjects ? allProjects[(currentIndex + 1) % allProjects.length] : null;
+
+  const project = caseStudy.portfolio_projects;
+  const metrics = caseStudy.metrics?.split("\n").map((m: string) => {
+    const [label, value, desc] = m.split("|");
+    return { label, value, desc };
+  }).filter((m: any) => m.label && m.value);
+
+  const challenges = caseStudy.client_challenges?.split("\n").filter(Boolean);
 
   return (
     <div className="min-h-screen bg-white">
       <ProlxNavbar />
 
-      {/* Hero */}
-      <section className="relative pt-20">
-        <div className="relative h-[50vh] md:h-[60vh]">
-          <Image
-            src={study.heroImg}
-            alt={study.title}
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/40 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
-            <div className="container mx-auto">
-              <div className="flex items-center gap-2 text-sm text-white/60 mb-4">
-                <Link href="/" className="hover:text-white">
-                  Home
-                </Link>
-                <ChevronRight size={14} />
-                <Link href="/portfolio" className="hover:text-white">
-                  Portfolio
-                </Link>
-                <ChevronRight size={14} />
-                <span className="text-white">{study.title}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <span className="text-xs font-mono bg-[#0D9488] text-white px-3 py-1 rounded-full">
-                  {study.industry}
-                </span>
-                <span className="text-white/60 text-sm">{study.client}</span>
-              </div>
-              <h1
-                className="text-4xl md:text-6xl font-extrabold text-white"
+      {/* Breadcrumbs & Header */}
+      <section className="pt-32 pb-16 bg-[#F8FAFC]">
+        <div className="container mx-auto px-4">
+          <nav className="flex items-center gap-2 text-sm font-bold text-[#64748B] mb-8">
+            <Link href="/" className="hover:text-[#0D9488]">Home</Link>
+            <ChevronRight size={14} />
+            <Link href="/portfolio" className="hover:text-[#0D9488]">Portfolio</Link>
+            <ChevronRight size={14} />
+            <span className="text-[#0D9488]">{project.name}</span>
+          </nav>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-end">
+            <div>
+              <span className="inline-block px-4 py-1.5 rounded-full bg-[#0D9488]/10 text-[#0D9488] text-xs font-black uppercase tracking-widest mb-6">
+                {project.category}
+              </span>
+              <h1 
+                className="text-5xl md:text-7xl font-extrabold text-[#0F172A] mb-8 leading-[1.1]"
                 style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
               >
-                {study.title}
+                {caseStudy.title || project.name}
               </h1>
+              
+              <div className="flex flex-wrap gap-4 mb-8">
+                {project.live_url && (
+                  <a 
+                    href={project.live_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#0D9488] hover:bg-[#0B7A6F] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-[#0D9488]/20"
+                  >
+                    <ExternalLink size={18} />
+                    View Live Application
+                  </a>
+                )}
+                {project.github_url && (
+                  <a 
+                    href={project.github_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] px-6 py-3 rounded-xl font-bold transition-all border border-[#E2E8F0]"
+                  >
+                    <Github size={18} />
+                    Source Code
+                  </a>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-8 py-8 border-t border-[#E2E8F0]">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B] mb-1">Client</p>
+                  <p className="font-bold text-[#0F172A]">{caseStudy.client_name || project.client}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B] mb-1">Industry</p>
+                  <p className="font-bold text-[#0F172A]">{caseStudy.industry || project.industry}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B] mb-1">Duration</p>
+                  <p className="font-bold text-[#0F172A]">4 Months</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="lg:pb-8">
+              <p className="text-xl text-[#475569] leading-relaxed italic" style={{ fontFamily: "'Fraunces', serif" }}>
+                "{project.summary}"
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-16 max-w-5xl">
-        {/* Background */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Project{" "}
-            <em
-              style={{
-                fontFamily: "'Fraunces', serif",
-                fontStyle: "italic",
-                color: "#0D9488",
-              }}
-            >
-              Background
-            </em>
-          </h2>
-          <p className="text-[#64748B] leading-relaxed text-lg">
-            {study.background}
-          </p>
-        </section>
-
-        {/* Challenges */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-6"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Client Challenges
-          </h2>
-          <div className="space-y-3">
-            {study.challenges.map((c, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 p-4 bg-red-50/50 rounded-xl border border-red-100"
-              >
-                <span className="w-2 h-2 rounded-full bg-[#EF4444] mt-2 shrink-0" />
-                <p className="text-[#64748B]">{c}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Strategy */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Research &{" "}
-            <em
-              style={{
-                fontFamily: "'Fraunces', serif",
-                fontStyle: "italic",
-                color: "#0D9488",
-              }}
-            >
-              Strategy
-            </em>
-          </h2>
-          <p className="text-[#64748B] leading-relaxed text-lg">
-            {study.strategy}
-          </p>
-        </section>
-
-        {/* Design Process */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Design Process
-          </h2>
-          <p className="text-[#64748B] leading-relaxed text-lg">
-            {study.designProcess}
-          </p>
-        </section>
-
-        {/* Development */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Development Approach
-          </h2>
-          <p className="text-[#64748B] leading-relaxed text-lg mb-6">
-            {study.development}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {study.techs.map((t) => (
-              <span
-                key={t}
-                className="text-sm font-mono bg-[#F0FDFA] border border-[#CCFBF1] text-[#0D9488] px-4 py-2 rounded-xl"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* Metrics */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-8"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Results &{" "}
-            <em
-              style={{
-                fontFamily: "'Fraunces', serif",
-                fontStyle: "italic",
-                color: "#0D9488",
-              }}
-            >
-              Metrics
-            </em>
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {study.metrics.map((m) => (
-              <div
-                key={m.label}
-                className="bg-[#F0FDFA] border border-[#CCFBF1] rounded-2xl p-6 text-center"
-              >
-                <div
-                  className="text-3xl md:text-4xl font-bold text-[#0D9488] mb-1"
-                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                >
-                  {m.value}
-                </div>
-                <div className="text-sm font-semibold text-[#0F172A]">
-                  {m.label}
-                </div>
-                <div className="text-xs text-[#64748B]">{m.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Screenshots */}
-        <section className="mb-16">
-          <h2
-            className="text-3xl font-bold text-[#0F172A] mb-8"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Visual Screenshots
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {study.screenshots.map((src, i) => (
-              <div
-                key={i}
-                className="relative h-52 rounded-2xl overflow-hidden border border-[#E2E8F0]"
-              >
-                <Image
-                  src={src}
-                  alt={`${study.title} screenshot ${i + 1}`}
-                  fill
-                  className="object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-8 border-t border-[#E2E8F0]">
-          {prev ? (
-            <Link
-              href={`/portfolio/${prev.slug}`}
-              className="flex items-center gap-2 text-[#64748B] hover:text-[#0D9488] transition-colors group"
-            >
-              <ChevronLeft
-                size={18}
-                className="group-hover:-translate-x-1 transition-transform"
-              />
-              <div>
-                <div className="text-xs text-[#94A3B8]">Previous</div>
-                <div className="font-semibold text-sm text-[#0F172A] group-hover:text-[#0D9488]">
-                  {prev.title}
-                </div>
-              </div>
-            </Link>
-          ) : (
-            <div />
-          )}
-          {next ? (
-            <Link
-              href={`/portfolio/${next.slug}`}
-              className="flex items-center gap-2 text-[#64748B] hover:text-[#0D9488] transition-colors group text-right"
-            >
-              <div>
-                <div className="text-xs text-[#94A3B8]">Next</div>
-                <div className="font-semibold text-sm text-[#0F172A] group-hover:text-[#0D9488]">
-                  {next.title}
-                </div>
-              </div>
-              <ArrowRight
-                size={18}
-                className="group-hover:translate-x-1 transition-transform"
-              />
-            </Link>
-          ) : (
-            <div />
-          )}
+      {/* Hero Image */}
+      <section className="container mx-auto px-4 -mt-8 relative z-10">
+        <div className="aspect-[21/9] rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white">
+          <Image 
+            src={caseStudy.hero_image_url || project.featured_image_url} 
+            alt={project.name}
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
-      </div>
+      </section>
 
-      {/* CTA */}
-      <section className="py-16 bg-[#0D9488]">
-        <div className="container mx-auto px-4 text-center">
-          <h2
-            className="text-3xl md:text-4xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Want Similar Results?
-          </h2>
-          <p className="text-teal-100 mb-8 max-w-xl mx-auto">
-            Let&apos;s discuss how we can help your business achieve transformative digital growth.
-          </p>
-          <Link
-            href="/contact"
-            className="inline-flex px-8 py-4 bg-[#F97316] text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            Start Your Project
-          </Link>
+      {/* Main Content */}
+      <section className="py-24">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-12 gap-16">
+            
+            {/* Left Column: Narrative */}
+            <div className="lg:col-span-8 space-y-20">
+              
+              {/* Background */}
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] flex items-center justify-center text-[#0D9488]">
+                    <Globe size={24} />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Project Background</h2>
+                </div>
+                <div className="text-lg text-[#64748B] leading-relaxed prose max-w-none">
+                  {caseStudy.project_background || "Exploring the origins and vision behind the digital transformation journey."}
+                </div>
+              </div>
+
+              {/* Challenges */}
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FFF7ED] flex items-center justify-center text-[#F97316]">
+                    <Target size={24} />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Client Challenges</h2>
+                </div>
+                <ul className="grid sm:grid-cols-2 gap-4">
+                  {(challenges && challenges.length > 0 ? challenges : ["Integrating legacy systems", "Scaling for high traffic", "Improving user retention"]).map((c: string, i: number) => (
+                    <li key={i} className="flex gap-3 p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                      <CheckCircle2 className="text-[#0D9488] flex-shrink-0 mt-1" size={18} />
+                      <span className="font-bold text-[#0F172A] text-sm">{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Research & Strategy */}
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#EEF2FF] flex items-center justify-center text-[#6366F1]">
+                    <Lightbulb size={24} />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Research & Strategy</h2>
+                </div>
+                <p className="text-lg text-[#64748B] leading-relaxed">
+                  {caseStudy.research_strategy || "A data-driven approach to understanding user behavior and market demands."}
+                </p>
+              </div>
+
+              {/* Design & UX */}
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FDF2F8] flex items-center justify-center text-[#DB2777]">
+                    <Palette size={24} />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Design Process</h2>
+                </div>
+                <p className="text-lg text-[#64748B] leading-relaxed">
+                  {caseStudy.design_process || "Crafting intuitive interfaces that prioritize accessibility and brand identity."}
+                </p>
+              </div>
+
+              {/* Development */}
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-400">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F5F3FF] flex items-center justify-center text-[#7C3AED]">
+                    <Code2 size={24} />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Development Approach</h2>
+                </div>
+                <p className="text-lg text-[#64748B] leading-relaxed">
+                  {caseStudy.development_approach || "Building modular, secure, and high-performance systems ready for scale."}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Right Column: Sticky Sidebar Info */}
+            <div className="lg:col-span-4">
+              <div className="sticky top-32 space-y-8">
+                
+                {/* Tech Stack */}
+                <div className="p-8 rounded-[2rem] bg-[#0F172A] text-white shadow-xl">
+                  <h4 className="font-black text-xs uppercase tracking-widest text-[#0D9488] mb-6">Technology Stack</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {(caseStudy.technologies || project.tech_stack || "").split(",").map((t: string) => (
+                      <span key={t} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold hover:bg-white/10 transition-colors">
+                        {t.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Results Card */}
+                <div className="p-8 rounded-[2rem] bg-[#F8FAFC] border border-[#E2E8F0] shadow-sm overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#0D9488]/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                  <h4 className="font-black text-xs uppercase tracking-widest text-[#0D9488] mb-8 flex items-center gap-2">
+                    <BarChart3 size={16} /> Results & Metrics
+                  </h4>
+                  <div className="space-y-8 relative z-10">
+                    {metrics && metrics.length > 0 ? metrics.map((m: any, idx: number) => (
+                      <div key={idx} className="animate-in fade-in slide-in-from-right-4 duration-500 delay-[200ms]">
+                        <div className="text-4xl font-black text-[#0F172A] mb-1">{m.value}</div>
+                        <div className="text-xs font-black uppercase tracking-widest text-[#0D9488] mb-1">{m.label}</div>
+                        <div className="text-sm text-[#64748B] leading-snug">{m.desc}</div>
+                      </div>
+                    )) : (
+                      <div className="text-[#64748B] text-sm py-4">Compiling detailed results...</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sidebar CTA */}
+                <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#0D9488] to-[#0F766E] text-white">
+                  <h4 className="font-bold text-lg mb-4">Have a similar project?</h4>
+                  <p className="text-white/80 text-sm mb-6 leading-relaxed">Let's discuss how we can bring similar results to your business.</p>
+                  <Link href="/contact" className="flex items-center justify-center gap-2 bg-white text-[#0D9488] w-full py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-opacity-90 transition-colors">
+                    Work With Us
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Visual Screenshots Gallery */}
+      {caseStudy.screenshots && caseStudy.screenshots.length > 0 && (
+        <section className="py-24 bg-[#F8FAFC]">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <span className="text-xs font-black uppercase tracking-widest text-[#0D9488] mb-4 block">Visual Interface</span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Experience the Results</h2>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+              {caseStudy.screenshots.map((url: string, idx: number) => (
+                <div key={idx} className="group relative aspect-video rounded-[2.5rem] overflow-hidden shadow-xl border border-[#E2E8F0] transform hover:scale-[1.02] transition-all duration-500">
+                  <Image 
+                    src={url} 
+                    alt={`Interface Preview ${idx + 1}`} 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                  />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                    <div className="bg-white/90 backdrop-blur-sm p-4 rounded-full text-[#0D9488] scale-0 group-hover:scale-100 transition-transform duration-500">
+                      <ExternalLink size={24} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Next Project / Footer CTA */}
+      <section className="py-32 bg-white border-t border-[#F1F5F9]">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left">
+            <div>
+              <p className="text-[#64748B] font-black uppercase tracking-[0.2em] text-[10px] mb-4">Up Next</p>
+              <h3 className="text-4xl font-extrabold text-[#0F172A] mb-4" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+                {nextProject ? nextProject.name : "Start Your Own Project"}
+              </h3>
+              {nextProject && (
+                <Link 
+                  href={`/portfolio/${nextProject.slug}`}
+                  className="inline-flex items-center gap-2 text-[#0D9488] font-black uppercase tracking-widest text-[10px] hover:gap-4 transition-all"
+                >
+                  View Case Study <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
+            
+            <Link 
+              href="/contact" 
+              className="inline-flex items-center gap-4 bg-[#0F172A] hover:bg-black text-white px-10 py-5 rounded-full text-lg font-bold transition-all shadow-2xl hover:translate-y-[-4px] active:scale-95"
+            >
+              Start Your Success Story
+              <ChevronRight size={24} />
+            </Link>
+          </div>
         </div>
       </section>
 

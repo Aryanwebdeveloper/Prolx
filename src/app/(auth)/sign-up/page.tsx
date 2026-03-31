@@ -40,21 +40,20 @@ export default async function Signup(props: {
             className="text-3xl font-bold text-white mb-4"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
           >
-            Start Managing Your{" "}
+            Join the Prolx{" "}
             <em style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", color: "#2DD4BF" }}>
-              Digital Presence
+              Platform
             </em>
           </h2>
-          <p className="text-[#94A3B8] leading-relaxed">
-            Create your admin account to manage content, monitor analytics, and
-            keep your website performing at its best.
+          <p className="text-[#94A3B8] leading-relaxed mb-6">
+            Register as Staff or Client. Your account will be reviewed and activated by an Admin before you can log in.
           </p>
-          <div className="mt-12 flex flex-col gap-3 text-left">
+          <div className="mt-8 flex flex-col gap-3 text-left">
             {[
-              "Full content management system",
-              "Real-time analytics dashboard",
-              "Team & role management",
-              "SEO & performance tools",
+              "Role-based secure access",
+              "Certificate management & verification",
+              "Profile & document management",
+              "Admin approval required",
             ].map((f) => (
               <div key={f} className="flex items-center gap-3 text-[#94A3B8] text-sm">
                 <span className="w-5 h-5 rounded-full bg-[#0D9488]/20 flex items-center justify-center text-[#2DD4BF] text-xs">✓</span>
@@ -91,6 +90,13 @@ export default async function Signup(props: {
             </p>
           </div>
 
+          {/* Pending approval notice */}
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <p className="text-amber-800 text-xs font-medium">
+              ⚠️ New accounts require Admin approval before access is granted. You will be notified once your account is reviewed.
+            </p>
+          </div>
+
           <UrlProvider>
             <form className="space-y-5">
               <div>
@@ -119,6 +125,22 @@ export default async function Signup(props: {
                   required
                   className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488] focus:ring-1 focus:ring-[#0D9488]"
                 />
+              </div>
+
+              {/* Role Selection */}
+              <div>
+                <Label htmlFor="role" className="block text-sm font-medium text-[#0F172A] mb-1.5">
+                  Account Type
+                </Label>
+                <select
+                  id="role"
+                  name="role"
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm text-[#0F172A] focus:outline-none focus:border-[#0D9488] bg-white"
+                >
+                  <option value="client">Client — I am a client of Prolx</option>
+                  <option value="staff">Staff — I work at Prolx</option>
+                </select>
               </div>
 
               <div>

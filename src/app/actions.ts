@@ -9,6 +9,7 @@ export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const fullName = formData.get("full_name")?.toString() || '';
+  const role = formData.get("role")?.toString() || 'client';
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
 
@@ -28,12 +29,12 @@ export const signUpAction = async (formData: FormData) => {
       data: {
         full_name: fullName,
         email: email,
+        role: role,
       }
     },
   });
 
   console.log("After signUp", error);
-
 
   if (error) {
     console.error(error.code + " " + error.message);
@@ -42,7 +43,8 @@ export const signUpAction = async (formData: FormData) => {
 
   if (user) {
     try {
-      const { error: updateError } = await supabase
+      // Insert into legacy users table (if exists)
+      await supabase
         .from('users')
         .insert({
           id: user.id,
@@ -54,8 +56,21 @@ export const signUpAction = async (formData: FormData) => {
           created_at: new Date().toISOString()
         });
 
-      if (updateError) {
-        console.error('Error updating user profile:', updateError);
+      // Insert into profiles table (new system)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: fullName,
+          email: email,
+          role: role === 'staff' ? 'staff' : 'client',
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
       }
     } catch (err) {
       console.error('Error in user profile creation:', err);
@@ -65,7 +80,7 @@ export const signUpAction = async (formData: FormData) => {
   return encodedRedirect(
     "success",
     "/sign-up",
-    "Thanks for signing up! Please check your email for a verification link.",
+    "Account created! Your registration is pending admin approval. You'll receive access once approved.",
   );
 };
 
@@ -74,7 +89,7 @@ export const signInAction = async (formData: FormData) => {
   const password = formData.get("password") as string;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -83,8 +98,29 @@ export const signInAction = async (formData: FormData) => {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
+  // Check profile status
+  if (authData.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profile) {
+      if (profile.status === 'pending') {
+        await supabase.auth.signOut();
+        return encodedRedirect("error", "/sign-in", "Your account is pending admin approval. Please wait for activation.");
+      }
+      if (profile.status === 'rejected') {
+        await supabase.auth.signOut();
+        return encodedRedirect("error", "/sign-in", "Your account has been rejected. Please contact support.");
+      }
+    }
+  }
+
   return redirect("/dashboard");
 };
+
 
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -97,7 +133,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
+    redirectTo: `${origin}/auth/callback?redirect_to=/dashboard/reset-password`,
   });
 
   if (error) {
@@ -127,15 +163,15 @@ export const resetPasswordAction = async (formData: FormData) => {
   const confirmPassword = formData.get("confirmPassword") as string;
 
   if (!password || !confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
-      "/protected/reset-password",
+      "/dashboard/reset-password",
       "Password and confirm password are required",
     );
   }
 
   if (password !== confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Passwords do not match",
@@ -147,14 +183,14 @@ export const resetPasswordAction = async (formData: FormData) => {
   });
 
   if (error) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Password update failed",
     );
   }
 
-  encodedRedirect("success", "/protected/reset-password", "Password updated");
+  return encodedRedirect("success", "/dashboard/reset-password", "Password updated");
 };
 
 export const signOutAction = async () => {
@@ -162,3 +198,26 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export async function getGlobalStats() {
+  const supabase = await createClient();
+  
+  const [
+    { count: usersCount },
+    { count: contactsCount },
+    { count: portfolioCount },
+    { count: blogCount }
+  ] = await Promise.all([
+    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }),
+    supabase.from('portfolio_projects').select('*', { count: 'exact', head: true }),
+    supabase.from('blog_posts').select('*', { count: 'exact', head: true }),
+  ]);
+
+  return {
+    users: usersCount || 0,
+    contacts: contactsCount || 0,
+    portfolio: portfolioCount || 0,
+    blog: blogCount || 0,
+  };
+}

@@ -5,6 +5,7 @@ import ProlxFooter from "@/components/prolx-footer";
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight, Mail, Phone, MapPin, MessageCircle, Send, CheckCircle2 } from "lucide-react";
+import { submitContact } from "@/app/contact-actions";
 
 const services = [
   "Website Development", "Custom Web App", "Mobile App", "UI/UX Design",
@@ -19,6 +20,7 @@ export default function ContactPage() {
     name: "", email: "", phone: "", service: "", message: "", budget: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -28,11 +30,22 @@ export default function ContactPage() {
     return e;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    
     setErrors({});
+    setIsSubmitting(true);
+    
+    const { error } = await submitContact(form);
+    setIsSubmitting(false);
+    
+    if (error) {
+      setErrors({ ...errors, api: error.message });
+      return;
+    }
+    
     setSubmitted(true);
   };
 
@@ -195,12 +208,25 @@ export default function ContactPage() {
                     {errors.message && <p className="text-[#EF4444] text-xs mt-1">{errors.message}</p>}
                   </div>
 
+                    {errors.api && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                          <span className="font-bold text-sm">!</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">Submission Error</p>
+                          <p className="text-xs opacity-80">{errors.api}</p>
+                        </div>
+                      </div>
+                    )}
+
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-8 py-4 bg-[#0D9488] hover:bg-[#0F766E] active:scale-95 text-white font-bold rounded-xl transition-all text-base"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-[#0D9488] hover:bg-[#0F766E] disabled:bg-opacity-70 active:scale-95 text-white font-bold rounded-xl transition-all text-base"
                   >
                     <Send size={18} />
-                    Send Message
+                    {isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
               )}

@@ -29,7 +29,7 @@ export function UrlProvider({ children }: UrlProviderProps) {
   const childrenWithUrl = React.Children.map(children, (child) => {
     if (React.isValidElement(child) && child.type === 'form') {
       return React.cloneElement(child, {}, [
-        ...React.Children.toArray(child.props.children),
+        ...React.Children.toArray((child as React.ReactElement<any>).props.children),
         <input key="site-url-input" type="hidden" name="site_url" value={currentUrl} />
       ]);
     }
