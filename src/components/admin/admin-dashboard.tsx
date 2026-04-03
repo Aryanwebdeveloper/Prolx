@@ -7,7 +7,7 @@ import {
   DollarSign, MessageSquare, Briefcase as CareerIcon, Settings,
   TrendingUp, Eye, Mail, BarChart3, Menu, X, LogOut, Calendar,
   PlusCircle, Edit, Trash2, Download, Save, UserCog, Award, CheckCircle,
-  Receipt, FileSignature, Clock
+  Receipt, FileSignature, Clock, Bell
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "../../../supabase/client";
@@ -28,6 +28,7 @@ import SettingsPanel from "@/components/admin/settings-panel";
 import InvoiceManagerPanel from "@/components/admin/invoice-manager-panel";
 import LetterGeneratorPanel from "@/components/admin/letter-generator-panel";
 import AttendanceManagerPanel from "@/components/admin/attendance-manager-panel";
+import AnnouncementsManagerPanel from "@/components/admin/announcements-manager-panel";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", id: "overview" },
@@ -45,6 +46,7 @@ const navItems = [
   { icon: Receipt, label: "Invoices", id: "invoices" },
   { icon: FileSignature, label: "Letters", id: "letters" },
   { icon: Clock, label: "Attendance", id: "attendance" },
+  { icon: Bell, label: "Announcements", id: "announcements" },
   { icon: Settings, label: "Settings", id: "settings" },
 ];
 
@@ -165,6 +167,7 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "invoices" && <InvoiceManagerPanel />}
           {active === "letters" && <LetterGeneratorPanel />}
           {active === "attendance" && <AttendanceManagerPanel />}
+          {active === "announcements" && <AnnouncementsManagerPanel />}
           {active === "settings" && <SettingsPanel />}
         </div>
       </main>

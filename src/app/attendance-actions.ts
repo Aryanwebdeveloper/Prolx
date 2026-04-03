@@ -2,6 +2,7 @@
 
 import { createClient } from "../../supabase/server";
 import { revalidatePath } from "next/cache";
+import type { StaffAnnouncement, StaffLocation } from "@/types/erp";
 
 // ============================================================
 // ATTENDANCE SETTINGS
@@ -65,7 +66,16 @@ export async function getTodayAttendance(userId: string) {
   return { data, error };
 }
 
-export async function checkIn(userId: string, taskDescription?: string, checkInPhotoUrl?: string) {
+export async function checkIn(
+  userId: string,
+  taskDescription?: string,
+  checkInPhotoUrl?: string,
+  locationData?: {
+    location: string;
+    lat?: number;
+    lng?: number;
+  }
+) {
   const supabase = await createClient();
   const now = new Date();
   const today = now.toISOString().split("T")[0];
@@ -96,9 +106,14 @@ export async function checkIn(userId: string, taskDescription?: string, checkInP
       .from("attendance")
       .update({
         sessions,
-        check_out: null, // Clear root check_out to indicate currently active
+        check_out: null,
         task_description: updatedTask,
-        check_in_photo_url: checkInPhotoUrl || existing.check_in_photo_url
+        check_in_photo_url: checkInPhotoUrl || existing.check_in_photo_url,
+        ...(locationData && {
+          check_in_location: locationData.location,
+          check_in_lat: locationData.lat,
+          check_in_lng: locationData.lng,
+        }),
       })
       .eq("id", existing.id)
       .select()
@@ -127,7 +142,12 @@ export async function checkIn(userId: string, taskDescription?: string, checkInP
         task_description: taskDescription,
         check_in_photo_url: checkInPhotoUrl || null,
         created_by: userId,
-        sessions
+        sessions,
+        ...(locationData && {
+          check_in_location: locationData.location,
+          check_in_lat: locationData.lat,
+          check_in_lng: locationData.lng,
+        }),
       })
       .select()
       .single();
@@ -137,7 +157,18 @@ export async function checkIn(userId: string, taskDescription?: string, checkInP
   }
 }
 
-export async function checkOut(userId: string, completedTasks?: string, checkOutPhotoUrl?: string) {
+export async function checkOut(
+  userId: string,
+  completedTasks?: string,
+  checkOutPhotoUrl?: string,
+  taskCompleted?: boolean,
+  taskProofUrls?: string[],
+  locationData?: {
+    location: string;
+    lat?: number;
+    lng?: number;
+  }
+) {
   const supabase = await createClient();
   const today = new Date().toISOString().split("T")[0];
   const checkOutTime = new Date().toISOString();
@@ -168,10 +199,17 @@ export async function checkOut(userId: string, completedTasks?: string, checkOut
   const { data, error } = await supabase
     .from("attendance")
     .update({ 
-      check_out: checkOutTime, // Root checkout
+      check_out: checkOutTime,
       sessions,
       completed_tasks: updatedTasks,
-      check_out_photo_url: checkOutPhotoUrl || existing.check_out_photo_url
+      check_out_photo_url: checkOutPhotoUrl || existing.check_out_photo_url,
+      ...(taskCompleted !== undefined && { task_completed: taskCompleted }),
+      ...(taskProofUrls && taskProofUrls.length > 0 && { task_proof_urls: taskProofUrls }),
+      ...(locationData && {
+        check_out_location: locationData.location,
+        check_out_lat: locationData.lat,
+        check_out_lng: locationData.lng,
+      }),
     })
     .eq("id", existing.id)
     .select()
@@ -422,4 +460,146 @@ export async function getTodayAllAttendance() {
     stats: { present, late, absent, total: staffList?.length || 0 },
     error: null,
   };
+}
+
+// ============================================================
+// STAFF LOCATION MANAGEMENT
+// ============================================================
+
+export async function getMyLocations(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("staff_locations")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  return { data, error };
+}
+
+export async function saveStaffLocation(
+  userId: string,
+  name: string,
+  lat?: number,
+  lng?: number,
+  radiusMeters: number = 200
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("staff_locations")
+    .upsert(
+      { user_id: userId, name, lat, lng, radius_meters: radiusMeters, is_active: true, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,name" }
+    )
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function deleteStaffLocation(locationId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("staff_locations")
+    .delete()
+    .eq("id", locationId);
+  return { error };
+}
+
+// ============================================================
+// STAFF ANNOUNCEMENTS / TASKS
+// ============================================================
+
+export async function getAnnouncements(userId?: string) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("staff_announcements")
+    .select(`*, creator:profiles!staff_announcements_created_by_fkey(id, full_name, email)`)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+
+  const { data, error } = await query;
+  if (error || !data) return { data: [], error };
+
+  if (userId) {
+    // Filter: target_user_ids null/empty means all staff
+    const filtered = data.filter((a: any) => {
+      if (!a.target_user_ids || a.target_user_ids.length === 0) return true;
+      return a.target_user_ids.includes(userId);
+    });
+
+    // Get read receipts for this user
+    const { data: reads } = await supabase
+      .from("staff_announcement_reads")
+      .select("announcement_id")
+      .eq("user_id", userId);
+
+    const readSet = new Set((reads || []).map((r: any) => r.announcement_id));
+
+    return {
+      data: filtered.map((a: any) => ({ ...a, is_read: readSet.has(a.id) })),
+      error: null,
+    };
+  }
+
+  return { data, error: null };
+}
+
+export async function createAnnouncement(payload: {
+  title: string;
+  body: string;
+  type: string;
+  priority: string;
+  target_user_ids?: string[];
+  scheduled_date?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("staff_announcements")
+    .insert({ ...payload, created_by: user?.id })
+    .select()
+    .single();
+  revalidatePath("/dashboard");
+  return { data, error };
+}
+
+export async function updateAnnouncement(
+  id: string,
+  payload: Partial<{
+    title: string;
+    body: string;
+    type: string;
+    priority: string;
+    target_user_ids: string[];
+    is_active: boolean;
+    scheduled_date: string;
+  }>
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("staff_announcements")
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  revalidatePath("/dashboard");
+  return { data, error };
+}
+
+export async function deleteAnnouncement(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("staff_announcements")
+    .delete()
+    .eq("id", id);
+  revalidatePath("/dashboard");
+  return { error };
+}
+
+export async function markAnnouncementRead(announcementId: string, userId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("staff_announcement_reads")
+    .upsert({ announcement_id: announcementId, user_id: userId }, { onConflict: "announcement_id,user_id" });
+  return { error };
 }

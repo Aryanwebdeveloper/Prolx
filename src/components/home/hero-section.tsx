@@ -23,18 +23,18 @@ export default function HeroSection() {
             </div>
 
             <h1
-              className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#0F172A] leading-[1.05] mb-6"
+              className="text-4xl sm:text-5xl xl:text-6xl font-extrabold text-[#0F172A] leading-[1.1] mb-6"
               style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
             >
-              We Design &amp; Build{" "}
-              <span className="text-[#0D9488]">Digital Products</span> That Grow
-              Businesses.
+              We Build{" "}
+              <span className="text-[#0D9488]">Digital Products</span>
+              <br className="hidden sm:block" />
+              That Grow Businesses.
             </h1>
 
-            <p className="text-lg text-[#64748B] mb-10 max-w-xl leading-relaxed">
-              From stunning websites to powerful web apps and mobile experiences —
-              Prolx transforms your vision into high-performance digital solutions
-              that convert and scale.
+            <p className="text-base sm:text-lg text-[#64748B] mb-8 max-w-lg leading-relaxed">
+              From stunning websites to powerful web apps — Prolx transforms
+              your vision into high-performance digital solutions that convert and scale.
             </p>
 
             <div className="flex flex-wrap gap-4">

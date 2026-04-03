@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Clock, Search, RefreshCw, Filter, X, Edit3, Trash2,
   CheckCircle, AlertCircle, UserCheck, UserX, Calendar,
-  ChevronLeft, ChevronRight, TrendingUp, Settings, FileText, Camera, ShieldAlert
+  ChevronLeft, ChevronRight, TrendingUp, Settings, FileText, Camera, ShieldAlert,
+  MapPin, Home, Building2, Globe, WifiOff, Check, Download
 } from "lucide-react";
 import {
   getAllAttendance, upsertAttendance, deleteAttendance, getTodayAllAttendance,
@@ -24,6 +25,25 @@ const STATUS_CONFIG = {
   late: { label: "Late", color: "bg-orange-100 text-orange-700", icon: AlertCircle },
   half_day: { label: "Half Day", color: "bg-yellow-100 text-yellow-700", icon: Clock },
 } as const;
+
+const LOCATION_ICONS: Record<string, any> = { Home, Office: Building2, Outside: Globe, Offline: WifiOff };
+const LOCATION_COLORS: Record<string, string> = {
+  Home: "bg-blue-100 text-blue-700",
+  Office: "bg-emerald-100 text-emerald-700",
+  Outside: "bg-orange-100 text-orange-700",
+  Offline: "bg-gray-100 text-gray-500",
+};
+
+function LocationBadge({ location }: { location?: string | null }) {
+  if (!location) return <span className="text-[#94A3B8] text-xs">—</span>;
+  const Icon = LOCATION_ICONS[location] || Globe;
+  const color = LOCATION_COLORS[location] || "bg-gray-100 text-gray-600";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+      <Icon size={11} />{location}
+    </span>
+  );
+}
 
 function formatTime(ts: string | null) {
   if (!ts) return "—";
@@ -440,7 +460,7 @@ export default function AttendanceManagerPanel() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E2E8F0]">
-                  {["Staff", "Date", "Check In", "Check Out", "Status", "Details/Tasks", "Actions"].map(h => (
+                  {["Staff", "Date", "Check In", "Check Out", "Location", "Task", "Status", "Details", "Actions"].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#94A3B8] uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -450,15 +470,26 @@ export default function AttendanceManagerPanel() {
                   const cfg = STATUS_CONFIG[record.status as AttendanceStatus] || STATUS_CONFIG.present;
                   const hasTasks = !!record.task_description || !!record.completed_tasks;
                   const hasImage = !!record.check_in_photo_url || !!record.check_out_photo_url;
+                  const taskCompleted = (record as any).task_completed;
                   return (
                     <tr key={record.id} className="border-b border-[#F8FAFC] hover:bg-[#F8FAFC] transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-[#0F172A]">{record.user?.full_name || "—"}</div>
+                        <div className="font-medium text-[#0F172A] text-sm">{record.user?.full_name || "—"}</div>
                         <div className="text-xs text-[#94A3B8]">{record.user?.email}</div>
                       </td>
                       <td className="px-4 py-3 text-[#64748B] font-mono text-xs">{record.date}</td>
-                      <td className="px-4 py-3 font-mono text-[#0F172A]">{formatTime(record.check_in)}</td>
-                      <td className="px-4 py-3 font-mono text-[#0F172A]">{formatTime(record.check_out)}</td>
+                      <td className="px-4 py-3 font-mono text-[#0F172A] text-xs">{formatTime(record.check_in)}</td>
+                      <td className="px-4 py-3 font-mono text-[#0F172A] text-xs">{formatTime(record.check_out)}</td>
+                      <td className="px-4 py-3">
+                        <LocationBadge location={(record as any).check_in_location} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {taskCompleted !== null && taskCompleted !== undefined ? (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${taskCompleted ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                            {taskCompleted ? <><Check size={10} /> Done</> : <><X size={10} /> Pending</>}
+                          </span>
+                        ) : <span className="text-[#94A3B8] text-xs">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${cfg.color}`}>
                           {(() => { const Icon = cfg.icon; return <Icon size={11} />; })()}
@@ -469,26 +500,20 @@ export default function AttendanceManagerPanel() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                         <div className="flex gap-2">
-                            {hasTasks ? (
-                               <button 
-                                 onClick={() => setShowInfo(record)}
-                                 title="View Details"
-                                 className="flex items-center gap-1 text-[10px] uppercase font-bold text-[#0D9488] bg-teal-50 px-2 py-1 rounded hover:bg-teal-100"
-                               >
-                                <FileText size={12} /> Tasks
-                               </button>
-                            ) : <span className="text-gray-300">-</span>}
-                            {hasImage && (
-                                <button 
-                                onClick={() => setShowInfo(record)}
-                                title="View Proof Photo"
-                                className="flex items-center gap-1 text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100"
-                              >
-                               <Camera size={12} /> Prooof
-                              </button>
-                            )}
-                         </div>
+                        <div className="flex gap-2">
+                          {hasTasks && (
+                            <button onClick={() => setShowInfo(record)} title="View Details"
+                              className="flex items-center gap-1 text-[10px] uppercase font-bold text-[#0D9488] bg-teal-50 px-2 py-1 rounded hover:bg-teal-100">
+                              <FileText size={12} /> Tasks
+                            </button>
+                          )}
+                          {hasImage && (
+                            <button onClick={() => setShowInfo(record)} title="View Proof"
+                              className="flex items-center gap-1 text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                              <Camera size={12} /> Proof
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

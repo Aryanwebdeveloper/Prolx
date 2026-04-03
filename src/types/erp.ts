@@ -258,9 +258,49 @@ export type AttendanceRecord = {
   task_description?: string | null;
   completed_tasks?: string | null;
   sessions?: Array<{ check_in: string; check_out: string | null }> | null;
+  // Location fields
+  check_in_location?: string | null;
+  check_out_location?: string | null;
+  check_in_lat?: number | null;
+  check_in_lng?: number | null;
+  check_out_lat?: number | null;
+  check_out_lng?: number | null;
+  task_completed?: boolean | null;
+  task_proof_urls?: string[] | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type StaffLocation = {
+  id: string;
+  user_id: string;
+  name: string;
+  lat?: number | null;
+  lng?: number | null;
+  radius_meters: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnnouncementType = "announcement" | "task" | "meeting" | "urgent";
+export type AnnouncementPriority = "low" | "normal" | "high" | "urgent";
+
+export type StaffAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  type: AnnouncementType;
+  priority: AnnouncementPriority;
+  target_user_ids?: string[] | null;
+  created_by?: string | null;
+  is_active: boolean;
+  scheduled_date?: string | null;
+  created_at: string;
+  updated_at: string;
+  creator?: { id: string; full_name: string; email: string } | null;
+  is_read?: boolean;
 };
 
 export type AttendanceWithUser = AttendanceRecord & {
