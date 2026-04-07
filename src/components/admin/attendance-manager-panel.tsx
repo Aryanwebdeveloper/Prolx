@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import {
   getAllAttendance, upsertAttendance, deleteAttendance, getTodayAllAttendance,
-  getAttendanceSettings, updateAttendanceSettings, autoManageAbsences
+  getAttendanceSettings, updateAttendanceSettings, autoManageAbsences,
+  getMyLocations, unlockStaffLocation,
 } from "@/app/attendance-actions";
 import { getAllProfiles } from "@/app/certificate-actions";
 import type { AttendanceWithUser } from "@/types/erp";
@@ -34,6 +35,13 @@ const LOCATION_COLORS: Record<string, string> = {
   Offline: "bg-gray-100 text-gray-500",
 };
 
+const TRACKING_STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  Active: { label: "Active", color: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+  "Outside Location": { label: "Outside", color: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  "Auto Checked-Out": { label: "Auto Checked-Out", color: "bg-red-100 text-red-700", dot: "bg-red-500" },
+  Offline: { label: "Offline", color: "bg-gray-100 text-gray-500", dot: "bg-gray-400" },
+};
+
 function LocationBadge({ location }: { location?: string | null }) {
   if (!location) return <span className="text-[#94A3B8] text-xs">—</span>;
   const Icon = LOCATION_ICONS[location] || Globe;
@@ -45,7 +53,18 @@ function LocationBadge({ location }: { location?: string | null }) {
   );
 }
 
-function formatTime(ts: string | null) {
+function TrackingStatusBadge({ status }: { status?: string | null }) {
+  if (!status) return null;
+  const cfg = TRACKING_STATUS_CONFIG[status] || { label: status, color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${status === "Active" ? "animate-pulse" : ""}`} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function formatTime(ts: string | null | undefined) {
   if (!ts) return "—";
   return new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
@@ -498,6 +517,11 @@ export default function AttendanceManagerPanel() {
                         <div className="text-xs text-[#64748B] mt-1 font-mono">
                           {record.sessions?.length ? calcTotalDuration(record.sessions) : calcDuration(record.check_in, record.check_out)}
                         </div>
+                        {record.tracking_status && (
+                          <div className="mt-1">
+                            <TrackingStatusBadge status={record.tracking_status} />
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -545,7 +569,71 @@ export default function AttendanceManagerPanel() {
                     <DialogDescription>{showInfo.date} | Status: <span className="font-bold">{showInfo.status.toUpperCase()}</span></DialogDescription>
                  </DialogHeader>
 
-                 <div className="space-y-6 mt-4">
+                  <div className="space-y-6 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
+                        <h4 className="text-sm font-bold flex items-center gap-2 border-b pb-2 mb-3 text-[#0F172A]">
+                          <WifiOff size={16} className="text-[#0D9488]" /> Tracking Status
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-[#64748B]">Current Status:</span>
+                            <TrackingStatusBadge status={showInfo.tracking_status} />
+                          </div>
+                          <div className="flex justify-between items-center text-xs font-mono">
+                            <span className="text-[#64748B]">Last Active:</span>
+                            <span className="font-bold">{formatTime(showInfo.last_active_time)}</span>
+                          </div>
+                          {showInfo.checkout_reason && (
+                            <div className="mt-2 p-2 bg-red-50 text-red-700 rounded text-[10px] font-bold border border-red-100 uppercase">
+                              Reason: {showInfo.checkout_reason}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
+                        <h4 className="text-sm font-bold flex items-center gap-2 border-b pb-2 mb-3 text-[#0F172A]">
+                          <Clock size={16} className="text-[#0D9488]" /> Session Summary
+                        </h4>
+                        <div className="space-y-2">
+                           <div className="flex justify-between text-xs">
+                             <span className="text-[#64748B]">Total Working:</span>
+                             <span className="font-bold">{calcTotalDuration(showInfo.sessions)}</span>
+                           </div>
+                           <div className="flex justify-between text-xs">
+                             <span className="text-[#64748B]">Late Minutes:</span>
+                             <span className="font-bold text-orange-600">
+                               {(() => {
+                                 if (!showInfo.check_in) return "—";
+                                 const expected = new Date(`${showInfo.date}T${exCheckIn}:00`);
+                                 const actual = new Date(showInfo.check_in);
+                                 const diff = Math.max(0, Math.floor((actual.getTime() - expected.getTime()) / 60000));
+                                 return diff > 0 ? `${diff}m` : "On Time";
+                               })()}
+                             </span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {showInfo.movement_history && showInfo.movement_history.length > 0 && (
+                      <div className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
+                        <h4 className="text-sm font-bold flex items-center gap-2 border-b pb-2 mb-3">
+                          <TrendingUp size={16} className="text-[#0D9488]" /> Movement & GPS History
+                        </h4>
+                        <div className="max-h-40 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                          {Array.isArray(showInfo.movement_history) && showInfo.movement_history.map((m: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center text-[10px] border-b border-[#F1F5F9] pb-1 font-mono">
+                              <span className="text-[#94A3B8]">{formatTime(m.timestamp)}</span>
+                              <span className="text-[#64748B]">({m.lat.toFixed(4)}, {m.lng.toFixed(4)})</span>
+                              <span className={m.status === "Active" ? "text-emerald-600" : "text-orange-500"}>{m.status}</span>
+                            </div>
+                          )).reverse()}
+                        </div>
+                      </div>
+                    )}
+
                     {showInfo.sessions && showInfo.sessions.length > 0 && (
                       <div className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
                         <h4 className="text-sm font-bold flex items-center gap-2 border-b pb-2 mb-3">
@@ -645,6 +733,22 @@ export default function AttendanceManagerPanel() {
                    {settingsLoading ? "Saving..." : "Save Settings"}
                  </button>
             </form>
+            <div className="mt-8 border-t pt-6">
+                <h4 className="text-sm font-bold mb-4 flex items-center gap-2 text-[#0F172A]">
+                  <MapPin size={16} className="text-[#0D9488]" /> Staff Location Constraints
+                </h4>
+                <div className="space-y-3">
+                   {staffList.length === 0 ? (
+                      <p className="text-xs text-gray-400">No staff loaded.</p>
+                   ) : (
+                      <div className="grid gap-2 max-h-60 overflow-y-auto p-1 pr-3 custom-scrollbar">
+                         {staffList.map(s => (
+                            <LocationManager key={s.id} staffId={s.id} staffName={s.full_name} />
+                         ))}
+                      </div>
+                   )}
+                </div>
+             </div>
          </DialogContent>
       </Dialog>
 
@@ -654,6 +758,61 @@ export default function AttendanceManagerPanel() {
       {editRecord && (
         <EditAttendanceModal record={editRecord} staffList={staffList} onClose={() => setEditRecord(null)} onSaved={() => { load(); setEditRecord(null); }} />
       )}
+    </div>
+  );
+}
+
+// ─── Location Manager Helper ────────────────────────────────────
+function LocationManager({ staffId, staffName }: { staffId: string; staffName: string }) {
+  const [locations, setLocations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [unlocking, setUnlocking] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getMyLocations(staffId);
+    setLocations(data || []);
+    setLoading(false);
+  }, [staffId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUnlock = async (id: string) => {
+    setUnlocking(id);
+    await unlockStaffLocation(id);
+    setUnlocking(null);
+    load();
+  };
+
+  if (locations.length === 0 && !loading) return null;
+
+  return (
+    <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#E2E8F0]">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs font-bold text-[#0F172A]">{staffName}</span>
+        {loading && <RefreshCw size={10} className="animate-spin text-[#94A3B8]" />}
+      </div>
+      <div className="space-y-1.5">
+        {locations.map(loc => (
+          <div key={loc.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-[#F1F5F9]">
+            <span className="text-[10px] text-[#64748B] flex items-center gap-1 text-wrap pr-2">
+              <MapPin size={10} /> {loc.name}
+              {loc.is_locked && (
+                <span className="bg-amber-100 text-amber-700 px-1 rounded-[4px] font-bold text-[8px] uppercase shrink-0">Locked</span>
+              )}
+            </span>
+            {loc.is_locked && (
+              <button
+                onClick={() => handleUnlock(loc.id)}
+                disabled={unlocking === loc.id}
+                className="text-[10px] font-bold text-[#0D9488] hover:underline flex items-center gap-1 shrink-0 px-2 py-1 hover:bg-teal-50 rounded"
+              >
+                {unlocking === loc.id ? "Unlocking..." : "Unlock"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -185,6 +185,7 @@ export default function AnnouncementsManagerPanel() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [staffFilter, setStaffFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<StaffAnnouncement | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -219,7 +220,15 @@ export default function AnnouncementsManagerPanel() {
   const filtered = items.filter(item => {
     const matchesSearch = !search || item.title.toLowerCase().includes(search.toLowerCase()) || item.body.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === "all" || item.type === typeFilter;
-    return matchesSearch && matchesType;
+    
+    let matchesStaff = false;
+    if (staffFilter === "all") {
+      matchesStaff = !item.target_user_ids || item.target_user_ids.length === 0;
+    } else {
+      matchesStaff = (!item.target_user_ids || item.target_user_ids.length === 0) || item.target_user_ids.includes(staffFilter);
+    }
+
+    return matchesSearch && matchesType && matchesStaff;
   });
 
   return (
@@ -268,6 +277,11 @@ export default function AnnouncementsManagerPanel() {
             <option value="all">All Types</option>
             {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>)}
           </select>
+          <select value={staffFilter} onChange={e => setStaffFilter(e.target.value)}
+            className="px-3 py-2.5 text-sm border border-[#E2E8F0] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 max-w-[200px]">
+            <option value="all">All Staff (Global)</option>
+            {staffList.filter(s => s.role === 'staff').map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+          </select>
           <button onClick={load} className="p-2.5 border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] text-[#64748B]">
             <RefreshCw size={15} />
           </button>
@@ -300,13 +314,23 @@ export default function AnnouncementsManagerPanel() {
                         {!item.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inactive</span>}
                       </div>
                       <p className="text-xs text-[#64748B] mt-1 line-clamp-2">{item.body}</p>
-                      <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-[#94A3B8]">
+                      <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] text-[#94A3B8]">
                         <span>Created: {new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                         {item.scheduled_date && <span>📅 Scheduled: {item.scheduled_date}</span>}
                         <span className="flex items-center gap-1">
                           <Users size={10} />
                           {!item.target_user_ids?.length ? "All Staff" : `${item.target_user_ids.length} staff member(s)`}
                         </span>
+                        {staffFilter !== "all" && (
+                          <span className={`px-1.5 py-0.5 rounded-full font-semibold border ${item.reads?.some((r: any) => r.user_id === staffFilter) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+                            {item.reads?.some((r: any) => r.user_id === staffFilter) ? 'Done / Read' : 'Pending'}
+                          </span>
+                        )}
+                        {staffFilter === "all" && item.reads && item.reads.length > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full font-semibold bg-emerald-50 border-emerald-200 text-emerald-700 border">
+                            Completed by {item.reads.length} staff
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">

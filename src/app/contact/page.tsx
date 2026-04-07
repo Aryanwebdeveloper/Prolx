@@ -244,8 +244,8 @@ export default function ContactPage() {
                 <div className="space-y-4">
                   {[
                     { Icon: Mail, label: "Email", val: "hello@prolx.digital" },
-                    { Icon: Phone, label: "Phone", val: "+92 300 1234567" },
-                    { Icon: MapPin, label: "Office", val: "Karachi, Pakistan" },
+                    { Icon: Phone, label: "Phone", val: "03300356046" },
+                    { Icon: MapPin, label: "Offices", val: "Main Havelian Bazar & AUST BIC, Abbottabad" },
                   ].map(({ Icon, label, val }) => (
                     <div key={label} className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#CCFBF1] flex items-center justify-center shrink-0">
@@ -260,7 +260,7 @@ export default function ContactPage() {
                 </div>
 
                 <a
-                  href="https://wa.me/923001234567"
+                  href="https://wa.me/923300356046"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-6 w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#1eb855] text-white font-semibold rounded-xl transition-all text-sm"
@@ -272,7 +272,7 @@ export default function ContactPage() {
 
               <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d231744.62979937804!2d66.84214039757892!3d24.860734965050607!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3eb33e06651d4bbf%3A0x9cf92f44555a0c23!2sKarachi%2C%20Pakistan!5e0!3m2!1sen!2s!4v1700000000000"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13190.49005471465!2d73.1539207!3d34.053896!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38de6b24467d983f%3A0x673dbb6a032d1847!2sHavelian%2C%20Abbottabad%2C%20Khyber%20Pakhtunkhwa%2C%20Pakistan!5e0!3m2!1sen!2s!4v1712246243000"
                   width="100%"
                   height="200"
                   style={{ border: 0 }}

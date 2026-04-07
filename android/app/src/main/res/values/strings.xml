@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ProLx</string>
+    <string name="title_activity_main">ProLx</string>
+    <string name="package_name">com.prolx.agency</string>
+    <string name="custom_url_scheme">com.prolx.agency</string>
+</resources>

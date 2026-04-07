@@ -267,6 +267,12 @@ export type AttendanceRecord = {
   check_out_lng?: number | null;
   task_completed?: boolean | null;
   task_proof_urls?: string[] | null;
+  // tracking fields
+  tracking_status?: string | null;
+  last_active_time?: string | null;
+  outside_since?: string | null;
+  checkout_reason?: string | null;
+  movement_history?: Array<{ lat: number; lng: number; timestamp: string; status: string }> | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -280,6 +286,7 @@ export type StaffLocation = {
   lng?: number | null;
   radius_meters: number;
   is_active: boolean;
+  is_locked: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -301,6 +308,7 @@ export type StaffAnnouncement = {
   updated_at: string;
   creator?: { id: string; full_name: string; email: string } | null;
   is_read?: boolean;
+  reads?: { user_id: string }[] | null;
 };
 
 export type AttendanceWithUser = AttendanceRecord & {

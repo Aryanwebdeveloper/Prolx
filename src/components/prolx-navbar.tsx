@@ -90,10 +90,19 @@ export default function ProlxNavbar() {
               {link.label}
             </Link>
           ))}
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("show-pwa-install"));
+              setMobileOpen(false);
+            }}
+            className="px-6 py-3 text-center font-semibold text-[#0D9488] border-2 border-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 transition-all"
+          >
+            Install Mobile App
+          </button>
           <Link
             href="/contact"
             onClick={() => setMobileOpen(false)}
-            className="mt-4 px-6 py-3 text-center font-semibold text-white bg-[#0D9488] rounded-lg hover:bg-[#0F766E] transition-all"
+            className="px-6 py-3 text-center font-semibold text-white bg-[#0D9488] rounded-lg hover:bg-[#0F766E] transition-all"
           >
             Start a Project
           </Link>

@@ -1,44 +1,49 @@
+import { Globe, Code2, Smartphone, Palette, ShoppingBag, Settings } from "lucide-react";
 import Link from "next/link";
-import {
-  Globe,
-  Code2,
-  Smartphone,
-  Palette,
-  PenTool,
-  Layers,
-  ShoppingBag,
-  Box,
-  Search,
-  BarChart2,
-  Cloud,
-  Settings,
-} from "lucide-react";
 
 const services = [
-  { icon: Globe, title: "Website Development", desc: "Blazing-fast, SEO-optimized websites that convert visitors into customers." },
-  { icon: Code2, title: "Custom Web Apps", desc: "Scalable web applications built with modern frameworks and clean architecture." },
-  { icon: Smartphone, title: "Mobile App Development", desc: "Native and cross-platform apps for iOS and Android that delight users." },
-  { icon: Palette, title: "UI/UX Design", desc: "Research-driven designs that balance beauty with intuitive user experience." },
-  { icon: PenTool, title: "Graphic Design", desc: "Compelling visual assets that communicate your brand story effectively." },
-  { icon: Layers, title: "Branding", desc: "Complete brand identity systems built for recognition and trust." },
-  { icon: ShoppingBag, title: "E-commerce Development", desc: "High-converting online stores on Shopify, WooCommerce, or custom platforms." },
-  { icon: Box, title: "SaaS Development", desc: "End-to-end SaaS product development from MVP to enterprise scale." },
-  { icon: Search, title: "SEO Optimization", desc: "Technical and content SEO strategies that drive sustainable organic growth." },
-  { icon: BarChart2, title: "Digital Marketing", desc: "Data-driven campaigns across paid, social, and email channels." },
-  { icon: Cloud, title: "Cloud Solutions", desc: "AWS, GCP, and Azure architecture, deployment, and DevOps consulting." },
-  { icon: Settings, title: "Website Maintenance", desc: "Ongoing support, updates, security monitoring, and performance optimization." },
+  {
+    icon: Globe,
+    title: "Website Development",
+    desc: "Fast, SEO-optimized websites built to convert visitors into customers.",
+  },
+  {
+    icon: Code2,
+    title: "Custom Web Apps",
+    desc: "Scalable web applications built with modern frameworks and clean architecture.",
+  },
+  {
+    icon: Smartphone,
+    title: "Mobile App Development",
+    desc: "Cross-platform apps for iOS and Android using React Native.",
+  },
+  {
+    icon: Palette,
+    title: "UI/UX Design",
+    desc: "Clean, intuitive designs that prioritize user experience and conversion.",
+  },
+  {
+    icon: ShoppingBag,
+    title: "E-commerce Development",
+    desc: "High-converting online stores on Shopify or custom-built platforms.",
+  },
+  {
+    icon: Settings,
+    title: "Website Maintenance",
+    desc: "Ongoing updates, security monitoring, and performance optimization.",
+  },
 ];
 
 export default function ServicesSection() {
   return (
-    <section className="py-24 bg-[#F0FDFA]">
+    <section className="py-20 bg-[#F0FDFA]">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 bg-[#CCFBF1] text-[#0D9488] text-sm font-semibold px-4 py-1.5 rounded-full mb-4 font-mono">
             What We Do
           </div>
           <h2
-            className="text-4xl md:text-5xl font-bold text-[#0F172A] mb-4"
+            className="text-3xl md:text-4xl font-bold text-[#0F172A] mb-4"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
           >
             Services Built for{" "}
@@ -49,9 +54,9 @@ export default function ServicesSection() {
               Impact
             </em>
           </h2>
-          <p className="text-[#64748B] text-lg max-w-2xl mx-auto">
+          <p className="text-[#64748B] text-base max-w-xl mx-auto">
             From design to deployment — we cover the full digital spectrum so you
-            can focus on what matters most: growing your business.
+            can focus on growing your business.
           </p>
         </div>
 
@@ -78,7 +83,8 @@ export default function ServicesSection() {
         <div className="text-center mt-10">
           <Link
             href="/services"
-            className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold rounded-xl transition-all"
+            id="services-view-all"
+            className="inline-flex items-center gap-2 px-7 py-3.5 border-2 border-[#0D9488] text-[#0D9488] font-semibold rounded-xl hover:bg-[#0D9488] hover:text-white transition-all"
           >
             View All Services
           </Link>

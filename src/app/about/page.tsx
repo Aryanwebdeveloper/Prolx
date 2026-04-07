@@ -5,23 +5,15 @@ import Image from "next/image";
 import { ChevronRight, Award, Users, Globe, Rocket } from "lucide-react";
 
 const milestones = [
-  { year: "2017", title: "Founded", desc: "Prolx was founded in Karachi with a team of 3 passionate developers." },
-  { year: "2018", title: "First 20 Clients", desc: "Reached our first 20 client milestone across Pakistan and UAE." },
-  { year: "2019", title: "Expanded Services", desc: "Launched mobile development and digital marketing service lines." },
-  { year: "2020", title: "Remote-First", desc: "Transitioned to remote-first model, expanding global reach." },
-  { year: "2021", title: "100 Projects", desc: "Celebrated our 100th project delivery with a 98% satisfaction rate." },
-  { year: "2023", title: "Global Presence", desc: "Now serving clients in 20+ countries across 5 continents." },
+  { year: "Jan 2026", title: "Founded", desc: "Prolx was founded in Abbottabad, Pakistan, starting our journey with a small, elite team of innovators." },
+  { year: "Feb 2026", title: "Seed Funding & Web Apps", desc: "Won seed money in BIC AUST and delivered our first 2 client web applications with high quality." },
+  { year: "Mar 2026", title: "Rapid Growth & Excellence", desc: "Completed 15+ projects in 3 months, showcasing speed and technical excellence using Next.js & modern tools." },
 ];
 
 const values = [
   { icon: Rocket, title: "Innovation First", desc: "We stay ahead of technology trends so our clients always receive future-proof solutions." },
   { icon: Users, title: "Client Partnership", desc: "We don't just deliver projects — we build long-term partnerships anchored in mutual success." },
   { icon: Award, title: "Quality Without Compromise", desc: "Every line of code, every pixel, every word is crafted to the highest professional standard." },
-];
-
-const awards = [
-  "Clutch Top Agency 2023", "Upwork Top Rated Plus", "Google Partner", "Shopify Partner",
-  "AWS Select Partner", "Best Agency Pakistan 2022",
 ];
 
 export default function AboutPage() {
@@ -51,10 +43,10 @@ export default function AboutPage() {
                 </em>
               </h1>
               <p className="text-[#64748B] text-lg leading-relaxed">
-                Founded in 2017 in Karachi, Pakistan, Prolx has grown from a small web studio 
-                into a full-service digital agency trusted by startups and enterprises across 20+ 
-                countries. We believe every business deserves world-class digital experiences — 
-                and we have the talent and process to deliver them.
+                Founded in early 2026 in Abbottabad, Pakistan, Prolx has rapidly grown 
+                from a bold vision into a results-driven digital agency. In just three 
+                months, we&apos;ve secured seed funding and delivered exceptional value 
+                to local and international clients through innovative technology.
               </p>
             </div>
             <div className="relative h-80">
@@ -148,19 +140,33 @@ export default function AboutPage() {
             <div className="hidden md:block absolute left-1/2 -translate-x-0.5 top-0 bottom-0 w-0.5 bg-[#CCFBF1]" />
             <div className="space-y-8">
               {milestones.map(({ year, title, desc }, i) => (
-                <div key={year} className={`flex gap-6 md:gap-0 items-start ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"}`}>
+                <div key={`${year}-${i}`} className={`flex gap-6 md:gap-0 items-start ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"}`}>
                   <div className={`hidden md:block flex-1 ${i % 2 === 0 ? "text-right pr-12" : "pl-12"}`}>
                     <div className="text-[#0D9488] font-mono font-bold text-lg">{year}</div>
                     <h4 className="font-bold text-[#0F172A]" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>{title}</h4>
                     <p className="text-sm text-[#64748B]">{desc}</p>
                   </div>
-                  <div className="hidden md:flex w-8 h-8 rounded-full bg-[#0D9488] text-white shrink-0 items-center justify-center text-xs font-bold relative z-10">
-                    {i + 1}
+                  <div className="hidden md:flex w-10 h-10 rounded-full bg-[#0D9488] text-white shrink-0 items-center justify-center text-xs font-bold relative z-10">
+                    {i === milestones.length - 1 ? (
+                      <svg viewBox="0 0 128 128" width="20" height="20" fill="currentColor">
+                        <path d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm0 120C33.1 120 8 94.9 8 64S33.1 8 64 8s56 25.1 56 56-25.1 56-56 56z"/><path d="M101.3 101.3L50.5 35.5V101h-8.8V27h8.8l50.8 65.8V27h8.8v74.3z"/>
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
                   </div>
                   <div className="flex-1 md:hidden">
                     <div className="flex items-center gap-3 mb-1">
-                      <div className="w-8 h-8 rounded-full bg-[#0D9488] text-white shrink-0 flex items-center justify-center text-xs font-bold">{i + 1}</div>
-                      <div className="text-[#0D9488] font-mono font-bold">{year}</div>
+                      <div className="w-10 h-10 rounded-full bg-[#0D9488] text-white shrink-0 flex items-center justify-center text-xs font-bold">
+                        {i === milestones.length - 1 ? (
+                          <svg viewBox="0 0 128 128" width="16" height="16" fill="currentColor">
+                            <path d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm0 120C33.1 120 8 94.9 8 64S33.1 8 64 8s56 25.1 56 56-25.1 56-56 56z"/><path d="M101.3 101.3L50.5 35.5V101h-8.8V27h8.8l50.8 65.8V27h8.8v74.3z"/>
+                          </svg>
+                        ) : (
+                          i + 1
+                        )}
+                      </div>
+                      <div className="text-[#0D9488] font-mono font-bold text-sm">{year}</div>
                     </div>
                     <h4 className="font-bold text-[#0F172A]">{title}</h4>
                     <p className="text-sm text-[#64748B]">{desc}</p>
@@ -212,28 +218,6 @@ export default function AboutPage() {
               View Full Team
               <ChevronRight size={16} />
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Awards */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2
-            className="text-4xl font-bold text-[#0F172A] mb-10"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Awards &amp; Certifications
-          </h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {awards.map((a) => (
-              <div
-                key={a}
-                className="px-6 py-3 bg-[#F0FDFA] border border-[#CCFBF1] rounded-full text-[#0D9488] font-semibold text-sm"
-              >
-                🏆 {a}
-              </div>
-            ))}
           </div>
         </div>
       </section>

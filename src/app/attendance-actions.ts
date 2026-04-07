@@ -219,6 +219,167 @@ export async function checkOut(
   return { data, error };
 }
 
+/**
+ * Calculates distance between two points in meters using Haversine formula
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+export async function syncHeartbeat(userId: string, lat: number, lng: number) {
+  const supabase = await createClient();
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+
+  const { data: attendance } = await supabase
+    .from("attendance")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("date", today)
+    .is("check_out", null)
+    .maybeSingle();
+
+  if (!attendance) return { status: "not_checked_in" };
+
+  // Get user's active/locked location
+  const { data: locations } = await supabase
+    .from("staff_locations")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_active", true);
+
+  let isOutside = false;
+  let currentStatus = "Active";
+  let outsideSince = attendance.outside_since;
+
+  if (locations && locations.length > 0) {
+    // Check if the user is within ANY of their active locations
+    const withinAny = locations.some((loc) => {
+      if (!loc.lat || !loc.lng) return true; // If no coords set, assume inside
+      const dist = calculateDistance(lat, lng, loc.lat, loc.lng);
+      return dist <= (loc.radius_meters || 100);
+    });
+
+    if (!withinAny) {
+      isOutside = true;
+      currentStatus = "Outside Location";
+      if (!outsideSince) outsideSince = now.toISOString();
+    } else {
+      currentStatus = "Active";
+      outsideSince = null;
+    }
+  }
+
+  // Check if outside for more than 5 minutes
+  if (outsideSince && isOutside) {
+    const outsideTime = new Date(outsideSince);
+    const diffMin = (now.getTime() - outsideTime.getTime()) / (1000 * 60);
+    if (diffMin >= 5) {
+      await checkOut(userId, "Auto Checked-Out: Moved outside allowed area", undefined, false, [], {
+        location: "Outside Allowed Area",
+        lat,
+        lng,
+      });
+      // Update check_out reason specifically
+      await supabase
+        .from("attendance")
+        .update({ checkout_reason: "Moved خارج allowed area" })
+        .eq("id", attendance.id);
+
+      return { status: "auto_checked_out", reason: "Moved outside allowed area" };
+    }
+  }
+
+  const movementHistory = attendance.movement_history || [];
+  movementHistory.push({ lat, lng, timestamp: now.toISOString(), status: currentStatus });
+  // Keep history manageable
+  if (movementHistory.length > 100) movementHistory.shift();
+
+  const { error } = await supabase
+    .from("attendance")
+    .update({
+      last_active_time: now.toISOString(),
+      tracking_status: currentStatus,
+      outside_since: outsideSince,
+      movement_history: movementHistory,
+    })
+    .eq("id", attendance.id);
+
+  return { error, status: currentStatus };
+}
+
+export async function sweepOfflineAttendance() {
+  const supabase = await createClient();
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+
+  // Find all active attendance records
+  const { data: activeAttendances } = await supabase
+    .from("attendance")
+    .select("*")
+    .eq("date", today)
+    .is("check_out", null);
+
+  if (!activeAttendances) return { count: 0 };
+
+  let count = 0;
+  for (const att of activeAttendances) {
+    const lastActive = att.last_active_time ? new Date(att.last_active_time) : new Date(att.check_in);
+    const diffOfflineMin = (now.getTime() - lastActive.getTime()) / (1000 * 60);
+
+    // Rule 1: Offline more than 10 minutes
+    if (diffOfflineMin >= 10) {
+      // Auto checkout and cap at last active time
+      const sessions = att.sessions || [];
+      if (sessions.length > 0) {
+        sessions[sessions.length - 1].check_out = lastActive.toISOString();
+      }
+
+      await supabase
+        .from("attendance")
+        .update({
+          check_out: lastActive.toISOString(),
+          sessions,
+          checkout_reason: "Offline/Inactivity",
+          tracking_status: "Auto Checked-Out",
+        })
+        .eq("id", att.id);
+      
+      count++;
+      continue;
+    }
+
+    // Rule 2: Outside more than 5 minutes (redundant check for syncHeartbeat failure)
+    if (att.outside_since) {
+      const outsideSince = new Date(att.outside_since);
+      const diffOutsideMin = (now.getTime() - outsideSince.getTime()) / (1000 * 60);
+      if (diffOutsideMin >= 5) {
+        await checkOut(att.user_id, "Auto Checked-Out: Moved outside allowed area");
+        await supabase
+          .from("attendance")
+          .update({ checkout_reason: "Moved خارج allowed area" })
+          .eq("id", att.id);
+        count++;
+      }
+    }
+  }
+
+  if (count > 0) revalidatePath("/dashboard");
+  return { count };
+}
+
+
 export async function autoManageAbsences() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -492,8 +653,41 @@ export async function saveStaffLocation(
     )
     .select()
     .single();
+
+  // Lock location after first setup
+  if (!error && data) {
+    await supabase
+      .from("staff_locations")
+      .update({ is_locked: true })
+      .eq("id", data.id);
+  }
+
   return { data, error };
 }
+
+export async function unlockStaffLocation(locationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Admin check
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user?.id)
+    .single();
+
+  if (profile?.role !== "admin") {
+    return { error: new Error("Unauthorized") };
+  }
+
+  const { error } = await supabase
+    .from("staff_locations")
+    .update({ is_locked: false })
+    .eq("id", locationId);
+
+  return { error };
+}
+
 
 export async function deleteStaffLocation(locationId: string) {
   const supabase = await createClient();
@@ -512,12 +706,25 @@ export async function getAnnouncements(userId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from("staff_announcements")
-    .select(`*, creator:profiles!staff_announcements_created_by_fkey(id, full_name, email)`)
+    .select(`*, creator:profiles!staff_announcements_created_by_fkey(id, full_name, email), reads:staff_announcement_reads(user_id)`)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   const { data, error } = await query;
   if (error || !data) return { data: [], error };
+
+  // Auto-fix any empty arrays to null for "All Staff" tasks/announcements
+  // this resolves issues where RLS blocks empty arrays {} if they were accidentally saved
+  for (const a of data) {
+    if (a.target_user_ids !== null && Array.isArray(a.target_user_ids) && a.target_user_ids.length === 0) {
+      try {
+        await supabase.from("staff_announcements").update({ target_user_ids: null }).eq("id", a.id);
+        a.target_user_ids = null; // Update local memory as well
+      } catch (e) {
+        // Ignore if we lack permission (e.g. normal staff)
+      }
+    }
+  }
 
   if (userId) {
     // Filter: target_user_ids null/empty means all staff
@@ -548,11 +755,15 @@ export async function createAnnouncement(payload: {
   body: string;
   type: string;
   priority: string;
-  target_user_ids?: string[];
+  target_user_ids?: string[] | null;
   scheduled_date?: string;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (payload.target_user_ids && payload.target_user_ids.length === 0) {
+    payload.target_user_ids = null;
+  }
 
   const { data, error } = await supabase
     .from("staff_announcements")
@@ -570,12 +781,17 @@ export async function updateAnnouncement(
     body: string;
     type: string;
     priority: string;
-    target_user_ids: string[];
+    target_user_ids: string[] | null;
     is_active: boolean;
     scheduled_date: string;
   }>
 ) {
   const supabase = await createClient();
+
+  if (payload.target_user_ids !== undefined && (payload.target_user_ids === null || payload.target_user_ids.length === 0)) {
+    payload.target_user_ids = null;
+  }
+
   const { data, error } = await supabase
     .from("staff_announcements")
     .update({ ...payload, updated_at: new Date().toISOString() })

@@ -64,6 +64,9 @@ export default function ProlxFooter() {
                 { label: "Testimonials", href: "/testimonials" },
                 { label: "FAQs", href: "/faqs" },
                 { label: "Support", href: "/support" },
+                { label: "Sign In", href: "/sign-in" },
+                { label: "Staff", href: "/sign-in" },
+                { label: "Clients", href: "/sign-in" },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link
@@ -121,11 +124,11 @@ export default function ProlxFooter() {
               </li>
               <li className="flex items-start gap-3 text-sm text-[#94A3B8]">
                 <Phone size={16} className="text-[#2DD4BF] mt-0.5 shrink-0" />
-                +92 300 1234567
+                03300356046
               </li>
               <li className="flex items-start gap-3 text-sm text-[#94A3B8]">
                 <MapPin size={16} className="text-[#2DD4BF] mt-0.5 shrink-0" />
-                Karachi, Pakistan
+                Havelian Main Bazar, Abbottabad, Pakistan
               </li>
             </ul>
 

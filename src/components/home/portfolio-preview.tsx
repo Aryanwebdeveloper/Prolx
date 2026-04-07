@@ -1,44 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
+import { getPortfolioProjects } from "@/app/portfolio-actions";
 
-const projects = [
-  {
-    title: "FinEdge Banking App",
-    category: "Mobile App Development",
-    tags: ["React Native", "Node.js", "PostgreSQL"],
-    img: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
-    slug: "finedge-banking-app",
-    size: "lg",
-  },
-  {
-    title: "Bloom E-commerce Platform",
-    category: "E-commerce Development",
-    tags: ["Next.js", "Shopify", "Tailwind"],
-    img: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&q=80",
-    slug: "bloom-ecommerce",
-    size: "sm",
-  },
-  {
-    title: "MedCare Patient Portal",
-    category: "Custom Web Application",
-    tags: ["React", "Supabase", "TypeScript"],
-    img: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&q=80",
-    slug: "medcare-patient-portal",
-    size: "sm",
-  },
-  {
-    title: "TechHub SaaS Dashboard",
-    category: "SaaS Development",
-    tags: ["Next.js", "Prisma", "AWS"],
-    img: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80",
-    slug: "techhub-saas-dashboard",
-    size: "lg",
-  },
-];
+export default async function PortfolioPreview() {
+  const { data: dbProjects } = await getPortfolioProjects();
 
-export default function PortfolioPreview() {
+  const displayProjects = dbProjects || [];
+
+  if (displayProjects.length === 0) {
+    return null; // Don't show the section if there are no projects in the database
+  }
+
   return (
-    <section className="py-24 bg-white">
+    <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div>
@@ -46,7 +21,7 @@ export default function PortfolioPreview() {
               Featured Work
             </div>
             <h2
-              className="text-4xl md:text-5xl font-bold text-[#0F172A]"
+              className="text-3xl md:text-4xl font-bold text-[#0F172A]"
               style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
             >
               Projects That{" "}
@@ -56,60 +31,84 @@ export default function PortfolioPreview() {
                 Speak for Themselves
               </em>
             </h2>
+            <p className="text-[#64748B] text-sm mt-3 max-w-md">
+              A selection of real projects we&apos;ve delivered for startups and growing businesses.
+            </p>
           </div>
           <Link
             href="/portfolio"
+            id="portfolio-view-all"
             className="shrink-0 inline-flex items-center gap-2 px-6 py-3 border-2 border-[#0D9488] text-[#0D9488] font-semibold rounded-xl hover:bg-[#0D9488] hover:text-white transition-all"
           >
             View All Projects
+            <ArrowRight size={16} />
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-5">
-          {projects.map(({ title, category, tags, img, slug }) => (
-            <div
-              key={title}
-              className="group relative overflow-hidden rounded-2xl aspect-[4/3] cursor-pointer"
-            >
-              <Image
-                src={img}
-                alt={title}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/80 via-[#0F172A]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <p className="text-[#2DD4BF] text-xs font-mono mb-1">{category}</p>
-                <h3
-                  className="text-white text-xl font-bold mb-2"
-                  style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-                >
-                  {title}
-                </h3>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs bg-white/20 text-white px-2 py-0.5 rounded font-mono"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+        <div className="grid md:grid-cols-2 gap-6">
+          {displayProjects.slice(0, 4).map((p: any) => {
+            const title = p.name;
+            const category = p.category;
+            const description = p.description || p.summary || "";
+            const tags = p.tech_stack ? p.tech_stack.split(",").map((t: string) => t.trim()) : (p.tags ? p.tags.split(",").map((t: string) => t.trim()) : []);
+            const img = p.featured_image_url || p.thumbnail_url || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80"; 
+            const slug = p.slug;
+
+            return (
+              <div
+                key={title}
+                className="group relative overflow-hidden rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#2DD4BF] hover:shadow-xl transition-all duration-300"
+              >
+                {/* Image */}
+                <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
+                  <Image
+                    src={img}
+                    alt={title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/60 to-transparent" />
+                  <span className="absolute top-4 left-4 text-[10px] bg-white/90 backdrop-blur-sm text-[#0D9488] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                    {category || "Project"}
+                  </span>
                 </div>
-                <Link
-                  href={`/portfolio/${slug}`}
-                  className="inline-flex items-center gap-1 text-[#F97316] text-sm font-semibold hover:underline"
-                >
-                  View Case Study →
-                </Link>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3
+                    className="text-lg font-bold text-[#0F172A] mb-2 group-hover:text-[#0D9488] transition-colors"
+                    style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
+                  >
+                    {title}
+                  </h3>
+                  {description && (
+                    <p className="text-sm text-[#64748B] mb-4 leading-relaxed line-clamp-2">
+                      {description}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {tags.slice(0, 4).map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="text-[10px] bg-[#F0FDFA] border border-[#CCFBF1] text-[#0D9488] px-2.5 py-1 rounded-md font-mono font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/portfolio/${slug}`}
+                    className="inline-flex items-center gap-1.5 text-[#0D9488] text-sm font-bold hover:gap-2.5 transition-all"
+                  >
+                    View Case Study <ArrowRight size={14} />
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
   );
 }
+

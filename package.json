@@ -3,7 +3,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "pwa:build": "npm run build && npx cap sync"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -75,6 +79,12 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@khmyznikov/pwa-install": "^0.6.3",
     "@types/node": "^20",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
