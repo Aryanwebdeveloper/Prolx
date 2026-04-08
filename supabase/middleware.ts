@@ -48,7 +48,27 @@ export const updateSession = async (request: NextRequest) => {
     }
 
     if (request.nextUrl.pathname === "/" && !error) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // Role-based session expiry check
+    if (user && !request.nextUrl.pathname.startsWith("/sign-in")) {
+      const loginTime = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
+      const now = Date.now();
+      const role = user.user_metadata?.role || 'client';
+      
+      let maxAge = 30 * 24 * 60 * 60 * 1000; // 1 month default
+      
+      if (role === 'staff' || role === 'admin') {
+        maxAge = 24 * 60 * 60 * 1000; // 1 day
+      } else if (role === 'client') {
+        maxAge = 7 * 24 * 60 * 60 * 1000; // 1 week
+      }
+      
+      if (now - loginTime > maxAge) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(new URL("/sign-in", request.url));
+      }
     }
 
     return response;
