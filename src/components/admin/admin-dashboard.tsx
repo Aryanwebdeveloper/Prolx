@@ -7,7 +7,7 @@ import {
   DollarSign, MessageSquare, Briefcase as CareerIcon, Settings,
   TrendingUp, Eye, Mail, BarChart3, Menu, X, LogOut, Calendar,
   PlusCircle, Edit, Trash2, Download, Save, UserCog, Award, CheckCircle,
-  Receipt, FileSignature, Clock, Bell
+  Receipt, FileSignature, Clock, Bell, FormInput
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "../../../supabase/client";
@@ -22,6 +22,8 @@ import PricingManagerPanel from "@/components/admin/pricing-manager-panel";
 import TeamManagerPanel from "@/components/admin/team-manager-panel";
 import ServicesManagerPanel from "@/components/admin/services-manager-panel";
 import CareersManagerPanel from "@/components/admin/careers-manager-panel";
+import CareersApplicationsPanel from "@/components/admin/careers-applications-panel";
+import ApplicationFormSettings from "@/components/admin/application-form-settings";
 import ContactSubmissionsPanel from "@/components/admin/contact-submissions-panel";
 import ConsultationsPanel from "@/components/admin/consultations-panel";
 import SettingsPanel from "@/components/admin/settings-panel";
@@ -41,6 +43,8 @@ const navItems = [
   { icon: Mail, label: "Contact Submissions", id: "contact" },
   { icon: Calendar, label: "Consultation Bookings", id: "consultations" },
   { icon: CareerIcon, label: "Careers", id: "careers" },
+  { icon: Users, label: "Job Applications", id: "applications" },
+  { icon: FormInput, label: "Form Settings", id: "form-settings" },
   { icon: UserCog, label: "Users", id: "users" },
   { icon: Award, label: "Certificates", id: "certificates" },
   { icon: Receipt, label: "Invoices", id: "invoices" },
@@ -162,6 +166,8 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "contact" && <ContactSubmissionsPanel />}
           {active === "consultations" && <ConsultationsPanel />}
           {active === "careers" && <CareersManagerPanel />}
+          {active === "applications" && <CareersApplicationsPanel />}
+          {active === "form-settings" && <ApplicationFormSettings />}
           {active === "users" && <UsersManagerPanel />}
           {active === "certificates" && <CertificateManagerPanel />}
           {active === "invoices" && <InvoiceManagerPanel />}
