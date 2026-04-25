@@ -2,6 +2,12 @@ import ProlxNavbar from "@/components/prolx-navbar";
 import ProlxFooter from "@/components/prolx-footer";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service | Prolx Digital Agency",
+  description: "Read our terms of service and project engagement policies.",
+};
 
 const sections = [
   {

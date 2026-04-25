@@ -75,6 +75,23 @@ export const signUpAction = async (formData: FormData) => {
     } catch (err) {
       console.error('Error in user profile creation:', err);
     }
+
+    // Admin Notification for New Sign-up
+    try {
+      const { sendEmail, adminNotificationTemplate, ADMIN_EMAIL } = await import("@/lib/email");
+      await sendEmail({
+        to: ADMIN_EMAIL,
+        subject: `[New User] ${fullName} signed up`,
+        html: adminNotificationTemplate({
+          title: "New Account Registration",
+          message: `<strong>${fullName}</strong> has registered for a new account.<br/><br/>Email: ${email}<br/>Role Requested: ${role}<br/><br/>The account is currently <strong>Pending</strong> admin approval.`,
+          actionLabel: "Manage Users",
+          actionUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://prolx.cloud"}/dashboard?tab=users`,
+        }),
+      });
+    } catch (emailErr) {
+      console.error("Admin sign-up notification error:", emailErr);
+    }
   }
 
   return encodedRedirect(
@@ -220,4 +237,218 @@ export async function getGlobalStats() {
     portfolio: portfolioCount || 0,
     blog: blogCount || 0,
   };
+}
+
+export async function getOverviewAnalytics() {
+  const supabase = await createClient();
+
+  // --- Visitor Trend: contacts submitted per day over last 7 days ---
+  const days: string[] = [];
+  const dayLabels: string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const todayLabels: string[] = [];
+  const counts: number[] = [];
+
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0]; // YYYY-MM-DD
+    days.push(dateStr);
+    todayLabels.push(dayLabels[d.getDay()]);
+    counts.push(0);
+  }
+
+  // Fetch from page_views instead of contacts for actual historical traffic
+  const { data: pageViewRows } = await supabase
+    .from("page_views")
+    .select("visitor_id, created_at, path")
+    .gte("created_at", days[0] + "T00:00:00Z");
+
+  if (pageViewRows) {
+    // We want unique visitors per day
+    const visitorsPerDay: Record<string, Set<string>> = {};
+    for (const d of days) visitorsPerDay[d] = new Set();
+
+    for (const row of pageViewRows) {
+      const rowDate = (row.created_at as string).split("T")[0];
+      if (visitorsPerDay[rowDate]) {
+        visitorsPerDay[rowDate].add(row.visitor_id);
+      }
+    }
+
+    for (let i = 0; i < days.length; i++) {
+      counts[i] = visitorsPerDay[days[i]].size;
+    }
+  }
+
+  const visitorTrend = todayLabels.map((label, i) => ({ label, count: counts[i] }));
+
+  // --- Lead Sources: track referrers from page_views ---
+  const { data: allReferrers } = await supabase
+    .from("page_views")
+    .select("referrer")
+    .neq("referrer", "")
+    .not("referrer", "is", null);
+
+  const sourceCounts: Record<string, number> = {};
+  
+  if (allReferrers) {
+    for (const row of allReferrers) {
+      let ref = (row.referrer as string).toLowerCase();
+      // Simplify referrer URLs into readable names
+      if (ref.includes("google")) ref = "Google";
+      else if (ref.includes("facebook") || ref.includes("fb.com")) ref = "Facebook";
+      else if (ref.includes("twitter") || ref.includes("t.co") || ref.includes("x.com")) ref = "Twitter / X";
+      else if (ref.includes("linkedin")) ref = "LinkedIn";
+      else if (ref.includes("localhost") || ref.includes("127.0.0.1") || ref.includes(process.env.NEXT_PUBLIC_SITE_URL || "prolx.cloud")) continue; // Skip internal traffic
+      else {
+        try {
+          const url = new URL(ref);
+          ref = url.hostname.replace("www.", "");
+        } catch {
+          ref = "Direct / Other";
+        }
+      }
+      
+      sourceCounts[ref] = (sourceCounts[ref] || 0) + 1;
+    }
+  }
+  
+  // If no referrers tracked yet, add Direct as default
+  if (Object.keys(sourceCounts).length === 0) {
+    sourceCounts["Direct / Unknown"] = 1;
+  }
+
+  const total = Object.values(sourceCounts).reduce((a, b) => a + b, 0);
+  const leadSources = Object.entries(sourceCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([source, count]) => ({
+      source,
+      pct: Math.round((count / total) * 100),
+    }));
+
+  // --- Recent Leads: latest 5 contacts ---
+  const { data: recentLeads } = await supabase
+    .from("contacts")
+    .select("name, email, service, created_at, status")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  // --- Top Pages History (Last 7 Days) ---
+  const topPagesCounts: Record<string, number> = {};
+  if (pageViewRows) {
+    for (const row of pageViewRows) {
+      const path = (row as any).path || "/";
+      topPagesCounts[path] = (topPagesCounts[path] || 0) + 1;
+    }
+  }
+
+  const topPagesHistory = Object.entries(topPagesCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([page, views]) => ({ page, views }));
+
+  return {
+    visitorTrend,
+    leadSources,
+    recentLeads: recentLeads || [],
+    topPagesHistory,
+  };
+}
+
+export async function submitSupportTicket(payload: {
+  name: string;
+  email: string;
+  category: string;
+  priority: string;
+  subject: string;
+  description: string;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("contacts").insert({
+    name: payload.name,
+    email: payload.email,
+    service: payload.category,
+    message: `[SUPPORT TICKET | Priority: ${payload.priority} | Subject: ${payload.subject}]\n\n${payload.description}`,
+    status: "New",
+  }).select().single();
+
+  if (data && !error) {
+    // Admin Notification for Support Ticket
+    try {
+      const { sendEmail, adminNotificationTemplate, ADMIN_EMAIL } = await import("@/lib/email");
+      await sendEmail({
+        to: ADMIN_EMAIL,
+        subject: `[Support Ticket] ${payload.subject}`,
+        html: adminNotificationTemplate({
+          title: "New Support Ticket Received",
+          message: `<strong>${payload.name}</strong> has submitted a support ticket.<br/><br/>Email: ${payload.email}<br/>Category: ${payload.category}<br/>Priority: ${payload.priority}<br/><br/><strong>Subject:</strong> ${payload.subject}<br/><strong>Description:</strong><br/>${payload.description}`,
+          actionLabel: "View Tickets",
+          actionUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://prolx.cloud"}/dashboard?tab=overview`,
+        }),
+      });
+    } catch (emailErr) {
+      console.error("Admin support ticket notification error:", emailErr);
+    }
+  }
+
+  return { data, error };
+}
+
+export async function pingLiveVisitor(visitorId: string, path: string) {
+  const supabase = await createClient();
+  
+  // We use upsert on visitor_id to update last_seen and current_path
+  const { error } = await supabase
+    .from('live_visitors')
+    .upsert(
+      { visitor_id: visitorId, current_path: path, last_seen: new Date().toISOString() },
+      { onConflict: 'visitor_id' }
+    );
+    
+  return { error: error ? error.message : null };
+}
+
+export async function getLiveVisitors() {
+  const supabase = await createClient();
+  
+  // Get users active in the last 5 minutes
+  const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  
+  const { data, error } = await supabase
+    .from('live_visitors')
+    .select('*')
+    .gte('last_seen', fiveMinsAgo);
+    
+  if (error || !data) return { activeCount: 0, topPages: [] };
+  
+  const activeCount = data.length;
+  
+  // Group by path to find top pages
+  const pageCounts: Record<string, number> = {};
+  data.forEach((visitor) => {
+    const path = visitor.current_path || '/';
+    pageCounts[path] = (pageCounts[path] || 0) + 1;
+  });
+  
+  const topPages = Object.entries(pageCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([path, count]) => ({ path, count }));
+    
+  return { activeCount, topPages };
+}
+
+export async function trackPageView(visitorId: string, path: string, referrer: string = "") {
+  const supabase = await createClient();
+  
+  const { error } = await supabase
+    .from('page_views')
+    .insert({
+      visitor_id: visitorId,
+      path: path,
+      referrer: referrer
+    });
+    
+  return { error: error ? error.message : null };
 }

@@ -11,8 +11,8 @@ export default function TeamManagerPanel() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    full_name: "", role: "", department: "", experience: "", 
-    skills: "", photo_url: "", linkedin_url: "", github_url: "",
+    full_name: "", role: "", department: "", experience: "",
+    bio: "", skills: "", photo_url: "", linkedin_url: "", github_url: "",
     is_active: true, display_order: 0
   });
 
@@ -28,9 +28,9 @@ export default function TeamManagerPanel() {
   const handleEdit = (item: any) => {
     setForm({
       full_name: item.full_name, role: item.role || "", department: item.department || "",
-      experience: item.experience || "", skills: item.skills || "", photo_url: item.photo_url || "",
-      linkedin_url: item.linkedin_url || "", github_url: item.github_url || "",
-      is_active: item.is_active, display_order: item.display_order || 0
+      experience: item.experience || "", bio: item.bio || "", skills: item.skills || "",
+      photo_url: item.photo_url || "", linkedin_url: item.linkedin_url || "",
+      github_url: item.github_url || "", is_active: item.is_active, display_order: item.display_order || 0
     });
     setEditingId(item.id);
     setShowForm(true);
@@ -51,8 +51,8 @@ export default function TeamManagerPanel() {
     setShowForm(false);
     setEditingId(null);
     setForm({
-      full_name: "", role: "", department: "", experience: "", 
-      skills: "", photo_url: "", linkedin_url: "", github_url: "",
+      full_name: "", role: "", department: "", experience: "",
+      bio: "", skills: "", photo_url: "", linkedin_url: "", github_url: "",
       is_active: true, display_order: 0
     });
     loadData();
@@ -71,7 +71,7 @@ export default function TeamManagerPanel() {
           <button
             onClick={() => {
               setEditingId(null);
-              setForm({ full_name: "", role: "", department: "", experience: "", skills: "", photo_url: "", linkedin_url: "", github_url: "", is_active: true, display_order: 0 });
+              setForm({ full_name: "", role: "", department: "", experience: "", bio: "", skills: "", photo_url: "", linkedin_url: "", github_url: "", is_active: true, display_order: 0 });
               setShowForm(!showForm);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-[#0D9488] hover:bg-[#0F766E] text-white text-sm font-semibold rounded-xl transition-all"
@@ -110,6 +110,10 @@ export default function TeamManagerPanel() {
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Years of Experience</label>
               <input type="text" value={form.experience} onChange={e => setForm({...form, experience: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Short Bio</label>
+              <textarea rows={2} value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} placeholder="One-line description shown on the team page..." className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488] resize-none" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Skills (comma-separated)</label>

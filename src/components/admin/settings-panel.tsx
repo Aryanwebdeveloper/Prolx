@@ -9,8 +9,10 @@ export default function SettingsPanel() {
   const [settings, setSettings] = useState<Record<string, any>>({
     site_name: "Prolx CMS",
     contact_email: "contact@prolx.com",
-    contact_phone: "+1 (555) 123-4567",
-    address: "123 Tech Lane, Innovation City, TC 90210",
+    support_email: "support@prolx.digital",
+    contact_phone: "+92 300 1234567",
+    whatsapp_url: "",
+    address: "",
     seo_description: "We build digital experiences that drive growth.",
     facebook_url: "",
     twitter_url: "",
@@ -100,12 +102,20 @@ export default function SettingsPanel() {
           <div className="space-y-4">
             <h3 className="font-semibold text-[#0F172A] border-b pb-2">Contact Details</h3>
             <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Contact Email</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">General Contact Email</label>
               <input type="email" name="contact_email" value={settings.contact_email || ""} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Support Email <span className="text-xs text-[#64748B]">(shown on /support page)</span></label>
+              <input type="email" name="support_email" value={settings.support_email || ""} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]" placeholder="support@prolx.digital" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Phone Number</label>
               <input type="text" name="contact_phone" value={settings.contact_phone || ""} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">WhatsApp URL <span className="text-xs text-[#64748B]">(e.g. https://wa.me/923001234567)</span></label>
+              <input type="url" name="whatsapp_url" value={settings.whatsapp_url || ""} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]" placeholder="https://wa.me/92..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Office Address</label>

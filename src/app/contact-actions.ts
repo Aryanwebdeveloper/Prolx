@@ -27,6 +27,47 @@ export async function submitContact(payload: {
     .select()
     .single();
   
+  if (data && !error) {
+    try {
+      const { sendEmail, contactConfirmationTemplate, ADMIN_EMAIL } = await import("@/lib/email");
+      const { createAdminClient } = await import("../../supabase/admin"); // We need admin client to log email if we want, or we can just send it.
+      const supabaseAdmin = createAdminClient();
+      
+      const emailHtml = contactConfirmationTemplate({ name: payload.name, service: payload.service, message: payload.message });
+      const emailResult = await sendEmail({
+        to: payload.email,
+        subject: `Thanks for reaching out to Prolx, ${payload.name}!`,
+        html: emailHtml,
+      });
+
+      // Log it
+      await supabaseAdmin.from("email_logs").insert({
+        recipient_email: payload.email,
+        recipient_name: payload.name,
+        subject: `Thanks for reaching out to Prolx, ${payload.name}!`,
+        template_type: "custom",
+        status: emailResult.error ? "failed" : "sent",
+        error_message: emailResult.error || null,
+        resend_id: emailResult.id || null,
+      });
+
+      // Admin Notification
+      const { adminNotificationTemplate } = await import("@/lib/email");
+      await sendEmail({
+        to: ADMIN_EMAIL,
+        subject: `[New Contact] Message from ${payload.name}`,
+        html: adminNotificationTemplate({
+          title: "New Contact Form Submission",
+          message: `<strong>${payload.name}</strong> has submitted a new contact form.<br/><br/>Email: ${payload.email}<br/>Phone: ${payload.phone || "N/A"}<br/>Service: ${payload.service || "N/A"}<br/>Budget: ${payload.budget || "N/A"}<br/><br/><strong>Message:</strong><br/>${payload.message}`,
+          actionLabel: payload.phone ? "Chat with Client on WhatsApp" : "View in Dashboard",
+          actionUrl: payload.phone ? `https://wa.me/${payload.phone.replace(/[^0-9]/g, '')}` : `${process.env.NEXT_PUBLIC_SITE_URL || "https://prolx.cloud"}/dashboard?tab=overview`,
+        }),
+      });
+    } catch (err) {
+      console.error("Email send error (non-fatal):", err);
+    }
+  }
+
   return { data, error };
 }
 

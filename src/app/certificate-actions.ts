@@ -162,6 +162,41 @@ export async function createCertificate(payload: {
         details: { title: payload.title, recipient: payload.recipient_name },
       });
     }
+
+    if (payload.recipient_email) {
+      try {
+        const { sendEmail, certificateIssuedTemplate } = await import("@/lib/email");
+        const { createAdminClient } = await import("../../supabase/admin");
+        const supabaseAdmin = createAdminClient();
+
+        const emailHtml = certificateIssuedTemplate({
+          name: payload.recipient_name,
+          title: payload.title,
+          certId,
+          issueDate: payload.issue_date,
+          category: payload.category,
+        });
+
+        const subject = `Your Certificate of Achievement: ${payload.title}`;
+        const emailResult = await sendEmail({
+          to: payload.recipient_email,
+          subject,
+          html: emailHtml,
+        });
+
+        await supabaseAdmin.from("email_logs").insert({
+          recipient_email: payload.recipient_email,
+          recipient_name: payload.recipient_name,
+          subject,
+          template_type: "certificate_issued",
+          status: emailResult.error ? "failed" : "sent",
+          error_message: emailResult.error || null,
+          resend_id: emailResult.id || null,
+        });
+      } catch (err) {
+        console.error("Certificate email error:", err);
+      }
+    }
   }
 
   revalidatePath("/dashboard");

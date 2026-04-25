@@ -32,6 +32,53 @@ export async function submitConsultation(payload: {
     .select()
     .single();
   
+  if (data && !error) {
+    try {
+      const { sendEmail, bookingConfirmationTemplate, ADMIN_EMAIL } = await import("@/lib/email");
+      const { createAdminClient } = await import("../../../supabase/admin");
+      const supabaseAdmin = createAdminClient();
+      
+      const emailHtml = bookingConfirmationTemplate({ 
+        name: payload.name, 
+        consultationType: payload.type,
+        date: payload.date,
+        time: payload.time
+      });
+      
+      const emailResult = await sendEmail({
+        to: payload.email,
+        subject: `Consultation Confirmed: ${payload.date} at ${payload.time}`,
+        html: emailHtml,
+      });
+
+      // Log it
+      await supabaseAdmin.from("email_logs").insert({
+        recipient_email: payload.email,
+        recipient_name: payload.name,
+        subject: `Consultation Confirmed: ${payload.date} at ${payload.time}`,
+        template_type: "custom",
+        status: emailResult.error ? "failed" : "sent",
+        error_message: emailResult.error || null,
+        resend_id: emailResult.id || null,
+      });
+
+      // Admin Notification
+      const { adminNotificationTemplate } = await import("@/lib/email");
+      await sendEmail({
+        to: ADMIN_EMAIL,
+        subject: `[New Booking] Consultation with ${payload.name}`,
+        html: adminNotificationTemplate({
+          title: "New Consultation Booked",
+          message: `<strong>${payload.name}</strong> has booked a <strong>${payload.type}</strong> consultation.<br/><br/>Date: ${payload.date}<br/>Time: ${payload.time}<br/>Email: ${payload.email}<br/>Company: ${payload.company || "N/A"}<br/>Budget: ${payload.budget || "N/A"}<br/>Timeline: ${payload.timeline || "N/A"}<br/><br/><strong>Project Description:</strong><br/>${payload.projectDesc}`,
+          actionLabel: "View in Dashboard",
+          actionUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://prolx.com"}/dashboard?tab=overview`,
+        }),
+      });
+    } catch (err) {
+      console.error("Email send error (non-fatal):", err);
+    }
+  }
+
   return { data, error };
 }
 

@@ -4,7 +4,14 @@ import Link from "next/link";
 import {
   Globe, Code2, Smartphone, Palette, PenTool, Layers,
   ShoppingBag, Box, Search, BarChart2, Cloud, Settings, ChevronRight,
+  Monitor, Briefcase, Cpu, Layout, Store
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Our Services | Web & App Development, SEO, Design | Prolx",
+  description: "Explore our premium digital services including website development, mobile apps, UI/UX design, SEO, SaaS development, and more.",
+};
 
 const services = [
   {
@@ -103,9 +110,49 @@ const services = [
     benefits: ["Security monitoring", "Regular backups", "Performance optimization", "Content updates"],
     techs: ["WordPress", "Next.js", "Cloudflare", "Sentry", "UptimeRobot"],
   },
+  {
+    icon: Monitor,
+    title: "Desktop Applications",
+    category: "Development",
+    desc: "We build powerful, native desktop software for Windows, macOS, and Linux. Whether you need a high-performance utility or a complex offline application, we deliver deep system integration and seamless user experiences.",
+    benefits: ["Native performance", "Offline capabilities", "System-level integration", "Cross-platform support"],
+    techs: ["Electron", "Tauri", "C# / .NET", "Java", "Python"],
+  },
+  {
+    icon: Briefcase,
+    title: "Business Management (POS)",
+    category: "Software",
+    desc: "Digitalize your business operations with custom Point of Sale (POS) systems, ERPs, and CRM tools. We build solutions that track inventory, manage sales, and generate detailed reports tailored to your industry.",
+    benefits: ["Inventory automation", "Real-time reporting", "Multi-branch support", "Cloud synchronization"],
+    techs: ["Next.js", "PostgreSQL", "Supabase", "Redis", "Node.js"],
+  },
+  {
+    icon: Cpu,
+    title: "Custom Software",
+    category: "Development",
+    desc: "Have a unique challenge? We develop bespoke software solutions that don't fit into a standard box. From custom algorithms and automation scripts to complex enterprise systems, we build what you need.",
+    benefits: ["Bespoke architecture", "Automation of workflows", "Legacy system integration", "Scalable solutions"],
+    techs: ["Python", "Go", "Rust", "C++", "Docker"],
+  },
+  {
+    icon: Layout,
+    title: "WordPress Development",
+    category: "CMS",
+    desc: "Get a professional, easy-to-manage website with the world's most popular CMS. We create custom WordPress themes and plugins, ensuring your site is fast, secure, and perfectly aligned with your brand identity.",
+    benefits: ["Custom theme design", "Plugin development", "Easy content management", "SEO & Speed optimization"],
+    techs: ["PHP", "WordPress", "JavaScript", "Elementor", "WP Engine"],
+  },
+  {
+    icon: Store,
+    title: "Shopify Development",
+    category: "E-commerce",
+    desc: "Scale your e-commerce business with a high-converting Shopify store. We specialize in custom Liquid themes, private app development, and third-party integrations to provide a premium shopping experience.",
+    benefits: ["Custom Liquid themes", "App integrations", "Checkout optimization", "Performance tuning"],
+    techs: ["Shopify Liquid", "Remix", "Hydrogen", "Polaris", "JavaScript"],
+  },
 ];
 
-const categories = ["All", "Development", "Design", "Marketing", "Infrastructure", "Support"];
+const categories = ["All", "Development", "Software", "CMS", "Design", "Marketing", "Infrastructure", "Support"];
 
 export default function ServicesPage() {
   return (

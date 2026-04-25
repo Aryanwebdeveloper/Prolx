@@ -3,6 +3,12 @@ import ProlxFooter from "@/components/prolx-footer";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Award, Users, Globe, Rocket } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us | Prolx Digital Agency",
+  description: "Learn about Prolx, a results-driven digital agency in Abbottabad, Pakistan. We specialize in web development, mobile apps, and digital growth.",
+};
 
 const milestones = [
   { year: "Jan 2026", title: "Founded", desc: "Prolx was founded in Abbottabad, Pakistan, starting our journey with a small, elite team of innovators." },
@@ -43,9 +49,9 @@ export default function AboutPage() {
                 </em>
               </h1>
               <p className="text-[#64748B] text-lg leading-relaxed">
-                Founded in early 2026 in Abbottabad, Pakistan, Prolx has rapidly grown 
-                from a bold vision into a results-driven digital agency. In just three 
-                months, we&apos;ve secured seed funding and delivered exceptional value 
+                Founded in early 2026 in Abbottabad, Pakistan, Prolx has rapidly grown
+                from a bold vision into a results-driven digital agency. In just three
+                months, we&apos;ve secured seed funding and delivered exceptional value
                 to local and international clients through innovative technology.
               </p>
             </div>
@@ -147,24 +153,12 @@ export default function AboutPage() {
                     <p className="text-sm text-[#64748B]">{desc}</p>
                   </div>
                   <div className="hidden md:flex w-10 h-10 rounded-full bg-[#0D9488] text-white shrink-0 items-center justify-center text-xs font-bold relative z-10">
-                    {i === milestones.length - 1 ? (
-                      <svg viewBox="0 0 128 128" width="20" height="20" fill="currentColor">
-                        <path d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm0 120C33.1 120 8 94.9 8 64S33.1 8 64 8s56 25.1 56 56-25.1 56-56 56z"/><path d="M101.3 101.3L50.5 35.5V101h-8.8V27h8.8l50.8 65.8V27h8.8v74.3z"/>
-                      </svg>
-                    ) : (
-                      i + 1
-                    )}
+                    {i + 1}
                   </div>
                   <div className="flex-1 md:hidden">
                     <div className="flex items-center gap-3 mb-1">
                       <div className="w-10 h-10 rounded-full bg-[#0D9488] text-white shrink-0 flex items-center justify-center text-xs font-bold">
-                        {i === milestones.length - 1 ? (
-                          <svg viewBox="0 0 128 128" width="16" height="16" fill="currentColor">
-                            <path d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm0 120C33.1 120 8 94.9 8 64S33.1 8 64 8s56 25.1 56 56-25.1 56-56 56z"/><path d="M101.3 101.3L50.5 35.5V101h-8.8V27h8.8l50.8 65.8V27h8.8v74.3z"/>
-                          </svg>
-                        ) : (
-                          i + 1
-                        )}
+                        {i + 1}
                       </div>
                       <div className="text-[#0D9488] font-mono font-bold text-sm">{year}</div>
                     </div>
@@ -196,17 +190,21 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             {[
-              { name: "Zain Ahmad", role: "CEO", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" },
-              { name: "Sara Malik", role: "CTO", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" },
-              { name: "Fatima Shah", role: "Lead Designer", img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&q=80" },
-              { name: "Hassan Ali", role: "Lead Engineer", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80" },
+              { name: "Aryan Waheed", role: "CEO & Co-Founder", dept: "Leadership", exp: "4 years", initials: "AW", color: "#0D9488" },
+              { name: "Muhammad Yassen", role: "COO & Co-Founder", dept: "Leadership", exp: "4 years", initials: "MY", color: "#0F766E" },
+              { name: "Abdullah Nisar", role: "Software Developer / Engineer", dept: "Engineering", exp: "4 years", initials: "AN", color: "#1D4ED8" },
+              { name: "Hammad ur Rehman", role: "Software Developer / Engineer", dept: "Engineering", exp: "3 years", initials: "HR", color: "#7C3AED" },
             ].map((m) => (
               <div key={m.name} className="text-center group">
-                <div className="relative w-24 h-24 mx-auto mb-3 rounded-full overflow-hidden border-2 border-[#E2E8F0] group-hover:border-[#0D9488] transition-colors">
-                  <Image src={m.img} alt={m.name} fill className="object-cover" />
+                <div
+                  className="w-24 h-24 mx-auto mb-3 rounded-full border-2 border-[#E2E8F0] group-hover:border-[#0D9488] transition-colors flex items-center justify-center text-white text-xl font-bold"
+                  style={{ background: `linear-gradient(135deg, ${m.color}, ${m.color}99)` }}
+                >
+                  {m.initials}
                 </div>
                 <h4 className="font-bold text-[#0F172A] text-sm" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>{m.name}</h4>
-                <p className="text-xs text-[#64748B]">{m.role}</p>
+                <p className="text-xs text-[#0D9488] font-semibold">{m.role}</p>
+                <p className="text-xs text-[#94A3B8] font-mono mt-0.5">{m.exp}</p>
               </div>
             ))}
           </div>

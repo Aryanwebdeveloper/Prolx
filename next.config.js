@@ -41,6 +41,9 @@ const nextConfig = {
     turbopack: {
         // This silences the conflict between webpack plugins (like next-pwa) and Turbopack
     },
+    devIndicators: {
+        buildActivity: false,
+    },
 };
 
 

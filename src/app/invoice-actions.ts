@@ -195,8 +195,45 @@ export async function updateInvoice(
     .from("invoices")
     .update(updateData)
     .eq("id", invoiceId)
-    .select()
+    .select(`*, client:profiles!invoices_client_id_fkey(full_name, email)`)
     .single();
+
+  if (data && !error && payload.status === "sent") {
+    try {
+      const { sendEmail, invoiceSentTemplate } = await import("@/lib/email");
+      const { createAdminClient } = await import("../../supabase/admin");
+      const supabaseAdmin = createAdminClient();
+      
+      const clientInfo = Array.isArray(data.client) ? data.client[0] : data.client;
+      if (clientInfo && clientInfo.email) {
+        const emailHtml = invoiceSentTemplate({
+          name: clientInfo.full_name || "Client",
+          invoiceId: data.id,
+          amount: `$${Number(data.total).toFixed(2)}`,
+          dueDate: data.due_date || "Upon Receipt",
+        });
+
+        const subject = `Invoice ${data.id} from Prolx`;
+        const emailResult = await sendEmail({
+          to: clientInfo.email,
+          subject,
+          html: emailHtml,
+        });
+
+        await supabaseAdmin.from("email_logs").insert({
+          recipient_email: clientInfo.email,
+          recipient_name: clientInfo.full_name || "Client",
+          subject,
+          template_type: "invoice_sent",
+          status: emailResult.error ? "failed" : "sent",
+          error_message: emailResult.error || null,
+          resend_id: emailResult.id || null,
+        });
+      }
+    } catch (err) {
+      console.error("Invoice email error:", err);
+    }
+  }
 
   revalidatePath("/dashboard");
   return { data, error };

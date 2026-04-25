@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { TempoInit } from "@/components/tempo-init";
 import { ThemeProvider } from "@/components/theme-provider";
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { LiveTracker } from "@/components/live-tracker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +22,12 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/fiIcons-01.png",
+    shortcut: "/fiIcons-01.png",
+    apple: "/fiIcons-01.png",
+  },
+  keywords: ["digital agency", "web development", "mobile apps", "SEO", "UI/UX design", "SaaS", "e-commerce", "Abbottabad", "Pakistan"],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -53,9 +58,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <PWAInstallPrompt />
+          <LiveTracker />
         </ThemeProvider>
-        <TempoInit />
       </body>
     </html>
   );

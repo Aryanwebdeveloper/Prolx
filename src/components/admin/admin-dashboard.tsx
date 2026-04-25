@@ -31,6 +31,8 @@ import InvoiceManagerPanel from "@/components/admin/invoice-manager-panel";
 import LetterGeneratorPanel from "@/components/admin/letter-generator-panel";
 import AttendanceManagerPanel from "@/components/admin/attendance-manager-panel";
 import AnnouncementsManagerPanel from "@/components/admin/announcements-manager-panel";
+import InterviewManagementPanel from "@/components/admin/interview-management-panel";
+import EmailLogsPanel from "@/components/admin/email-logs-panel";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", id: "overview" },
@@ -45,6 +47,8 @@ const navItems = [
   { icon: CareerIcon, label: "Careers", id: "careers" },
   { icon: Users, label: "Job Applications", id: "applications" },
   { icon: FormInput, label: "Form Settings", id: "form-settings" },
+  { icon: Calendar, label: "Interview Management", id: "interviews" },
+  { icon: Mail, label: "Email Logs", id: "email-logs" },
   { icon: UserCog, label: "Users", id: "users" },
   { icon: Award, label: "Certificates", id: "certificates" },
   { icon: Receipt, label: "Invoices", id: "invoices" },
@@ -168,6 +172,8 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "careers" && <CareersManagerPanel />}
           {active === "applications" && <CareersApplicationsPanel />}
           {active === "form-settings" && <ApplicationFormSettings />}
+          {active === "interviews" && <InterviewManagementPanel />}
+          {active === "email-logs" && <EmailLogsPanel />}
           {active === "users" && <UsersManagerPanel />}
           {active === "certificates" && <CertificateManagerPanel />}
           {active === "invoices" && <InvoiceManagerPanel />}

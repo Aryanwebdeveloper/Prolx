@@ -1,6 +1,6 @@
 const techs = [
-  "React", "Next.js", "TypeScript", "Node.js", "React Native",
-  "Supabase", "PostgreSQL", "Figma", "Tailwind CSS", "Shopify", "Docker", "Python",
+  "React", "Next.js", "TypeScript", "Node.js", "React Native", "WordPress",
+  "Supabase", "PostgreSQL", "Figma", "Tailwind CSS", "Shopify", "Docker", "Python", "Electron", "PHP",
 ];
 
 const industries = [

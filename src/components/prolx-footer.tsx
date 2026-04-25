@@ -92,10 +92,13 @@ export default function ProlxFooter() {
               {[
                 "Website Development",
                 "Mobile App Development",
+                "Desktop App Development",
+                "Business Management (POS)",
                 "UI/UX Design",
                 "E-commerce Development",
+                "Software Development",
+                "WordPress & Shopify",
                 "SEO Optimization",
-                "Digital Marketing",
               ].map((s) => (
                 <li key={s}>
                   <Link

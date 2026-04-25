@@ -63,7 +63,7 @@ export default function TeamClient({ members, departments }: { members: any[]; d
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filtered.map(({ id, full_name, role, department, experience, skills, photo_url, linkedin_url, github_url }) => (
+              {filtered.map(({ id, full_name, role, department, bio, experience, skills, photo_url, linkedin_url, github_url }) => (
                 <div
                   key={id}
                   className="group bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:border-[#2DD4BF] hover:shadow-xl transition-all duration-300 flex flex-col"
@@ -76,6 +76,7 @@ export default function TeamClient({ members, departments }: { members: any[]; d
                     <span className="text-xs font-mono bg-[#F0FDFA] text-[#0D9488] px-2 py-0.5 rounded mb-2 w-fit">{department}</span>
                     <h3 className="font-bold text-[#0F172A] text-base" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>{full_name}</h3>
                     <p className="text-xs text-[#64748B] mb-1">{role}</p>
+                    {bio && <p className="text-xs text-[#94A3B8] italic mb-2 leading-relaxed">{bio}</p>}
                     <p className="text-xs text-[#94A3B8] mb-3 font-mono">{experience || '1+ year'} experience</p>
                     <div className="flex flex-wrap gap-1 mb-4 flex-1">
                       {(Array.isArray(skills) ? skills : []).slice(0, 3).map((s: string) => (

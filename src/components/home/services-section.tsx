@@ -1,4 +1,4 @@
-import { Globe, Code2, Smartphone, Palette, ShoppingBag, Settings } from "lucide-react";
+import { Globe, Code2, Smartphone, Palette, ShoppingBag, Settings, Monitor, Briefcase } from "lucide-react";
 import Link from "next/link";
 
 const services = [
@@ -18,19 +18,19 @@ const services = [
     desc: "Cross-platform apps for iOS and Android using React Native.",
   },
   {
-    icon: Palette,
-    title: "UI/UX Design",
-    desc: "Clean, intuitive designs that prioritize user experience and conversion.",
+    icon: Monitor,
+    title: "Desktop Applications",
+    desc: "Powerful, native software for Windows, macOS, and Linux platforms.",
+  },
+  {
+    icon: Briefcase,
+    title: "Business Solutions (POS)",
+    desc: "Custom-built POS systems and ERP tools to streamline your operations.",
   },
   {
     icon: ShoppingBag,
     title: "E-commerce Development",
     desc: "High-converting online stores on Shopify or custom-built platforms.",
-  },
-  {
-    icon: Settings,
-    title: "Website Maintenance",
-    desc: "Ongoing updates, security monitoring, and performance optimization.",
   },
 ];
 
