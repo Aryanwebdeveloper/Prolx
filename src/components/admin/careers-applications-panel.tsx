@@ -1,7 +1,7 @@
 "use client";
 import{useState,useEffect,useCallback}from"react";
-import{Eye,CheckCircle,XCircle,Mail,ExternalLink,RefreshCw,Loader2,Search,Download,Calendar,DollarSign,Clock,FileText,X,Star,Send,Users,Phone,MapPin}from"lucide-react";
-import{getJobApplications,updateApplicationStatus,getCareerJobs,bulkUpdateApplicationStatus,sendEmailToApplicant,sendBulkEmail,scheduleInterview,exportApplicationsCSV}from"@/app/careers-actions";
+import{Eye,CheckCircle,XCircle,Mail,ExternalLink,RefreshCw,Loader2,Search,Download,Calendar,DollarSign,Clock,FileText,X,Star,Send,Users,Phone,MapPin,MessageCircle}from"lucide-react";
+import{getJobApplications,updateApplicationStatus,getCareerJobs,bulkUpdateApplicationStatus,sendEmailToApplicant,sendBulkEmail,scheduleInterview,scheduleBulkInterviews,exportApplicationsCSV}from"@/app/careers-actions";
 const STATUS=["Pending","Reviewed","Shortlisted","Interview Scheduled","Rejected","Hired"];
 const SC:Record<string,string>={Pending:"bg-amber-100 text-amber-700",Reviewed:"bg-blue-100 text-blue-700",Shortlisted:"bg-green-100 text-green-700","Interview Scheduled":"bg-indigo-100 text-indigo-700",Rejected:"bg-red-100 text-red-700",Hired:"bg-teal-100 text-teal-700"};
 export default function CareersApplicationsPanel(){
@@ -63,17 +63,29 @@ else{await sendBulkEmail(selected,emailSubject,emailBody);}
 setSending(false);setShowEmail(false);setEmailSubject("");setEmailBody("");
 };
 const doSchedule=async()=>{
-if(!intDate||!sel)return;
+if(!intDate)return;
 setSending(true);
-await scheduleInterview(sel.id,{
-  scheduled_at:intDate,
-  office_address:intOffice,
-  interview_mode:"Physical",
-  interview_type:intType,
-  interviewer_name:intName
-});
-setApps(p=>p.map(a=>a.id===sel.id?{...a,status:"Interview Scheduled"}:a));
-setSel((p:any)=>({...p,status:"Interview Scheduled"}));
+if(selected.length>0&&!sel){
+  await scheduleBulkInterviews(selected,{
+    scheduled_at:intDate,
+    office_address:intOffice,
+    interview_mode:"Physical",
+    interview_type:intType,
+    interviewer_name:intName
+  });
+  setApps(p=>p.map(a=>selected.includes(a.id)?{...a,status:"Interview Scheduled"}:a));
+  setSelected([]);
+}else if(sel){
+  await scheduleInterview(sel.id,{
+    scheduled_at:intDate,
+    office_address:intOffice,
+    interview_mode:"Physical",
+    interview_type:intType,
+    interviewer_name:intName
+  });
+  setApps(p=>p.map(a=>a.id===sel.id?{...a,status:"Interview Scheduled"}:a));
+  setSel((p:any)=>({...p,status:"Interview Scheduled"}));
+}
 setSending(false);setShowInterview(false);setIntDate("");setIntName("");setIntOffice("");
 };
 const toggleSel=(id:string)=>setSelected(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
@@ -100,7 +112,8 @@ return(
 <>
 <button onClick={()=>doBulkStatus("Shortlisted")} className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-lg">Shortlist ({selected.length})</button>
 <button onClick={()=>doBulkStatus("Rejected")} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg">Reject ({selected.length})</button>
-<button onClick={()=>setShowEmail(true)} className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1"><Mail size={13}/>Email ({selected.length})</button>
+<button onClick={()=>{setShowEmail(true);setSel(null);}} className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1"><Mail size={13}/>Email ({selected.length})</button>
+<button onClick={()=>{setShowInterview(true);setSel(null);}} className="px-3 py-1.5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-lg flex items-center gap-1"><Calendar size={13}/>Schedule ({selected.length})</button>
 </>
 )}
 <button onClick={doExport} className="flex items-center gap-1.5 px-3 py-1.5 text-[#64748B] border border-[#E2E8F0] hover:border-[#0D9488] hover:text-[#0D9488] text-xs font-semibold rounded-lg"><Download size={13}/>Export CSV</button>
@@ -175,6 +188,11 @@ return(
 <td className="py-3 px-4 text-right" onClick={e=>e.stopPropagation()}>
 <div className="flex items-center justify-end gap-1">
 <button onClick={()=>setSel(app)} className="p-1.5 rounded-lg hover:bg-[#F0FDFA] text-[#0D9488]" title="View"><Eye size={15}/></button>
+{app.phone&&(
+<button onClick={()=>window.open(`https://wa.me/${app.phone.replace(/\D/g,'')}`,'_blank')} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="WhatsApp">
+<MessageCircle size={15}/>
+</button>
+)}
 {app.status!=="Shortlisted"&&app.status!=="Hired"&&(
 <button onClick={()=>doStatus(app.id,"Shortlisted")} disabled={updatingId===app.id} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="Shortlist">
 {updatingId===app.id?<Loader2 size={15} className="animate-spin"/>:<CheckCircle size={15}/>}
@@ -257,7 +275,7 @@ return(
 </div>
 </div>
 )}
-{showInterview&&sel&&(
+{showInterview&&(sel||selected.length>0)&&(
 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
 <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
 <div className="flex items-center justify-between p-5 border-b border-[#E2E8F0]">
@@ -265,7 +283,7 @@ return(
 <button onClick={()=>setShowInterview(false)} className="text-[#64748B] hover:text-[#0F172A]"><X size={18}/></button>
 </div>
 <div className="p-5 space-y-4">
-<p className="text-sm text-[#64748B]">For: <strong className="text-[#0F172A]">{sel.name}</strong> — {sel.career_jobs?.title}</p>
+<p className="text-sm text-[#64748B]">For: <strong className="text-[#0F172A]">{selected.length>0&&!sel?`${selected.length} selected applicants`:sel?.name}</strong> {sel?.career_jobs?.title?`— ${sel.career_jobs.title}`:""}</p>
 <div><label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">Date and Time *</label><input type="datetime-local" value={intDate} onChange={e=>setIntDate(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]"/></div>
 <div><label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">Interview Type</label>
 <select value={intType} onChange={e=>setIntType(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#0D9488]">

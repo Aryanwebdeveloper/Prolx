@@ -239,16 +239,68 @@ export async function updateApplicationStatus(id: string, status: string, sendEm
   return { data, error: null };
 }
 
-export async function bulkUpdateApplicationStatus(ids: string[], status: string) {
+export async function bulkUpdateApplicationStatus(ids: string[], status: string, sendEmailNotification = true) {
   const supabase = createAdminClient();
+  
+  let updateData: any = { status, updated_at: new Date().toISOString() };
+  if (status === "Hired") {
+    updateData.hired_at = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from("career_applications")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updateData)
     .in("id", ids);
 
   if (error) {
     console.error("bulkUpdateApplicationStatus error:", error);
     return { error };
+  }
+
+  if (sendEmailNotification && (status === "Shortlisted" || status === "Hired")) {
+    const { data: apps } = await supabase
+      .from("career_applications")
+      .select("id, name, email, career_jobs(title)")
+      .in("id", ids);
+
+    if (apps) {
+      for (const app of apps) {
+        const name = app.name;
+        const email = app.email;
+        const role = (app.career_jobs as any)?.title || "the position";
+        let emailHtml: string | null = null;
+        let subject = "";
+        let templateType = "";
+
+        if (status === "Shortlisted") {
+          emailHtml = shortlistedTemplate({ name, role });
+          subject = `Great news! You've been shortlisted for ${role}`;
+          templateType = "shortlisted";
+        } else if (status === "Hired") {
+          emailHtml = hiredTemplate({ name, role });
+          subject = `Welcome to the Prolx team! 🎉`;
+          templateType = "hired";
+        }
+
+        if (emailHtml) {
+          try {
+            const emailResult = await sendEmail({ to: email, subject, html: emailHtml });
+            await supabase.from("email_logs").insert({
+              application_id: app.id,
+              recipient_email: email,
+              recipient_name: name,
+              subject,
+              template_type: templateType,
+              status: emailResult.error ? "failed" : "sent",
+              error_message: emailResult.error || null,
+              resend_id: emailResult.id || null,
+            });
+          } catch (emailErr) {
+            console.error("Email send error (non-fatal):", emailErr);
+          }
+        }
+      }
+    }
   }
 
   revalidatePath("/dashboard");
@@ -351,6 +403,97 @@ export async function scheduleInterview(
 
   revalidatePath("/dashboard");
   return { data: interview, error: null };
+}
+
+export async function scheduleBulkInterviews(
+  applicationIds: string[],
+  data: {
+    scheduled_at: string;
+    meeting_link?: string;
+    office_address?: string;
+    interview_mode?: "Online" | "Physical";
+    interview_type?: string;
+    interviewer_name?: string;
+  }
+) {
+  const supabase = createAdminClient();
+  const isPhysical = data.interview_mode === "Physical";
+  
+  const { error: appUpdateError } = await supabase
+    .from("career_applications")
+    .update({
+      status: "Interview Scheduled",
+      interviewed_at: data.scheduled_at,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", applicationIds);
+
+  if (appUpdateError) {
+    return { error: appUpdateError };
+  }
+
+  const { data: apps } = await supabase
+    .from("career_applications")
+    .select("id, name, email, career_jobs(title)")
+    .in("id", applicationIds);
+
+  if (apps) {
+    const interviewDate = new Date(data.scheduled_at).toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    for (const app of apps) {
+      const role = (app.career_jobs as any)?.title || "the position";
+      const subject = `Interview Scheduled — ${role} at Prolx`;
+
+      await supabase.from("interviews").insert({
+        application_id: app.id,
+        scheduled_at: data.scheduled_at,
+        meeting_link: isPhysical ? null : (data.meeting_link || null),
+        office_address: isPhysical ? (data.office_address || null) : null,
+        interview_mode: data.interview_mode || "Online",
+        interview_type: data.interview_type || "Video Call",
+        interviewer_name: data.interviewer_name || null,
+        status: "Scheduled",
+      });
+
+      try {
+        const emailResult = await sendEmail({
+          to: app.email,
+          subject,
+          html: interviewScheduledTemplate({
+            name: app.name,
+            role,
+            interviewDate,
+            interviewType: data.interview_type || (data.interview_mode === "Physical" ? "In-Person" : "Video Call"),
+            interviewMode: data.interview_mode,
+            meetingLink: data.interview_mode === "Physical" ? undefined : data.meeting_link,
+            officeAddress: data.interview_mode === "Physical" ? data.office_address : undefined,
+          }),
+        });
+        await supabase.from("email_logs").insert({
+          application_id: app.id,
+          recipient_email: app.email,
+          recipient_name: app.name,
+          subject,
+          template_type: "interview_scheduled",
+          status: emailResult.error ? "failed" : "sent",
+          error_message: emailResult.error || null,
+          resend_id: emailResult.id || null,
+        });
+      } catch (err) {
+        console.error("Bulk interview email error:", err);
+      }
+    }
+  }
+
+  revalidatePath("/dashboard");
+  return { error: null };
 }
 
 export async function getInterviews(applicationId?: string) {
