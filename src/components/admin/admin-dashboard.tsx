@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   LayoutDashboard, Globe, Briefcase, Users, FileText, Star,
   DollarSign, MessageSquare, Briefcase as CareerIcon, Settings,
   TrendingUp, Eye, Mail, BarChart3, Menu, X, LogOut, Calendar,
   PlusCircle, Edit, Trash2, Download, Save, UserCog, Award, CheckCircle,
-  Receipt, FileSignature, Clock, Bell, FormInput
+  Receipt, FileSignature, Clock, Bell, FormInput, User as UserIcon
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "../../../supabase/client";
@@ -33,30 +33,8 @@ import AttendanceManagerPanel from "@/components/admin/attendance-manager-panel"
 import AnnouncementsManagerPanel from "@/components/admin/announcements-manager-panel";
 import InterviewManagementPanel from "@/components/admin/interview-management-panel";
 import EmailLogsPanel from "@/components/admin/email-logs-panel";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Overview", id: "overview" },
-  { icon: Globe, label: "Services", id: "services" },
-  { icon: Briefcase, label: "Portfolio", id: "portfolio" },
-  { icon: Users, label: "Team", id: "team" },
-  { icon: FileText, label: "Blog", id: "blog" },
-  { icon: Star, label: "Testimonials", id: "testimonials" },
-  { icon: DollarSign, label: "Pricing", id: "pricing" },
-  { icon: Mail, label: "Contact Submissions", id: "contact" },
-  { icon: Calendar, label: "Consultation Bookings", id: "consultations" },
-  { icon: CareerIcon, label: "Careers", id: "careers" },
-  { icon: Users, label: "Job Applications", id: "applications" },
-  { icon: FormInput, label: "Form Settings", id: "form-settings" },
-  { icon: Calendar, label: "Interview Management", id: "interviews" },
-  { icon: Mail, label: "Email Logs", id: "email-logs" },
-  { icon: UserCog, label: "Users", id: "users" },
-  { icon: Award, label: "Certificates", id: "certificates" },
-  { icon: Receipt, label: "Invoices", id: "invoices" },
-  { icon: FileSignature, label: "Letters", id: "letters" },
-  { icon: Clock, label: "Attendance", id: "attendance" },
-  { icon: Bell, label: "Announcements", id: "announcements" },
-  { icon: Settings, label: "Settings", id: "settings" },
-];
+import MyAccountPanel from "@/components/admin/my-account-panel";
+import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
 
 const statsCards = [
   { label: "Total Visitors", value: "12,847", trend: "+18%", icon: Eye, color: "teal" },
@@ -65,10 +43,72 @@ const statsCards = [
   { label: "Blog Reads", value: "8,103", trend: "+31%", icon: BarChart3, color: "purple" },
 ];
 
+const getNavItems = (role: string) => {
+  const baseItems = [
+    { icon: LayoutDashboard, label: "Overview", id: "overview" },
+    { icon: UserIcon, label: "My Account", id: "my-account" },
+  ];
+
+  // Staff items
+  if (role === "staff" || role === "admin") {
+    baseItems.push({ icon: UserCog, label: "My Team Settings", id: "my-profile" });
+  }
+
+  // Admin-only items
+  if (role === "admin") {
+    baseItems.push(
+      { icon: Globe, label: "Services", id: "services" },
+      { icon: Briefcase, label: "Portfolio", id: "portfolio" },
+      { icon: Users, label: "Team", id: "team" },
+      { icon: FileText, label: "Blog", id: "blog" },
+      { icon: Star, label: "Testimonials", id: "testimonials" },
+      { icon: DollarSign, label: "Pricing", id: "pricing" },
+      { icon: Mail, label: "Contact Submissions", id: "contact" },
+      { icon: Calendar, label: "Consultation Bookings", id: "consultations" },
+      { icon: CareerIcon, label: "Careers", id: "careers" },
+      { icon: Users, label: "Job Applications", id: "applications" },
+      { icon: FormInput, label: "Form Settings", id: "form-settings" },
+      { icon: Calendar, label: "Interview Management", id: "interviews" },
+      { icon: Mail, label: "Email Logs", id: "email-logs" },
+      { icon: UserCog, label: "Users", id: "users" },
+      { icon: Award, label: "Certificates", id: "certificates" },
+      { icon: Receipt, label: "Invoices", id: "invoices" },
+      { icon: FileSignature, label: "Letters", id: "letters" },
+      { icon: Clock, label: "Attendance", id: "attendance" },
+      { icon: Bell, label: "Announcements", id: "announcements" },
+      { icon: Settings, label: "Settings", id: "settings" },
+    );
+  } else if (role === "staff") {
+     // Staff specific additional items
+     baseItems.push(
+       { icon: Clock, label: "Attendance", id: "attendance" },
+       { icon: Bell, label: "Announcements", id: "announcements" },
+     );
+  }
+
+  return baseItems;
+};
+
 export default function AdminDashboard({ user }: { user: User }) {
   const [active, setActive] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
+
+  // Get user profile to determine role
+  const [profile, setProfile] = useState<any>(null);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data } = await createClient().from("profiles").select("*").eq("id", user.id).single();
+      setProfile(data);
+      // Set default tab based on role
+      if (data?.role === "staff") setActive("my-account");
+      if (data?.role === "client") setActive("my-account");
+    };
+    fetchProfile();
+  }, [user.id]);
+
+  const role = profile?.role || "client";
+  const navItems = getNavItems(role);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -90,7 +130,7 @@ export default function AdminDashboard({ user }: { user: User }) {
               <span className="text-white font-bold text-sm font-mono">Px</span>
             </div>
             <span className="text-white font-bold text-lg" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
-              Prolx Admin
+              Prolx {role === "admin" ? "Admin" : role === "staff" ? "Staff" : "Portal"}
             </span>
           </Link>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/60 hover:text-white">
@@ -117,12 +157,16 @@ export default function AdminDashboard({ user }: { user: User }) {
 
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-[#0D9488] flex items-center justify-center text-white font-bold text-xs">
-              {user.email?.charAt(0).toUpperCase()}
+            <div className="w-8 h-8 rounded-full bg-[#0D9488] flex items-center justify-center text-white font-bold text-xs overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user.email?.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-xs font-medium truncate">{user.email}</p>
-              <p className="text-[#64748B] text-xs">Admin</p>
+              <p className="text-white text-xs font-medium truncate">{profile?.full_name || user.email}</p>
+              <p className="text-[#64748B] text-xs capitalize">{role}</p>
             </div>
           </div>
           <button
@@ -153,14 +197,21 @@ export default function AdminDashboard({ user }: { user: User }) {
             <Link href="/" className="text-xs text-[#64748B] hover:text-[#0D9488] transition-colors">
               ← View Site
             </Link>
-            <div className="w-8 h-8 rounded-full bg-[#0D9488] flex items-center justify-center text-white font-bold text-xs">
-              {user.email?.charAt(0).toUpperCase()}
+            <div className="w-8 h-8 rounded-full bg-[#0D9488] flex items-center justify-center text-white font-bold text-xs overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user.email?.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         </header>
 
         <div className="p-6">
           {active === "overview" && <OverviewPanel />}
+          {active === "my-account" && <MyAccountPanel />}
+
+          {active === "my-profile" && <MyTeamProfilePanel />}
           {active === "services" && <ServicesManagerPanel />}
           {active === "portfolio" && <PortfolioManagerPanel />}
           {active === "team" && <TeamManagerPanel />}
@@ -186,6 +237,7 @@ export default function AdminDashboard({ user }: { user: User }) {
     </div>
   );
 }
+
 
 
 

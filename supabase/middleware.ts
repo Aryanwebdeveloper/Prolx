@@ -44,7 +44,7 @@ export const updateSession = async (request: NextRequest) => {
 
     // protected routes
     if (request.nextUrl.pathname.startsWith("/dashboard") && error) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+      return NextResponse.redirect(new URL("https://prolx.cloud/sign-in", request.url));
     }
 
     if (request.nextUrl.pathname === "/" && !error) {
@@ -67,7 +67,7 @@ export const updateSession = async (request: NextRequest) => {
       
       if (now - loginTime > maxAge) {
         await supabase.auth.signOut();
-        return NextResponse.redirect(new URL("/sign-in", request.url));
+        return NextResponse.redirect(new URL("https://prolx.cloud/sign-in", request.url));
       }
     }
 
@@ -75,7 +75,7 @@ export const updateSession = async (request: NextRequest) => {
   } catch (e) {
     // If you are here, a Supabase client could not be created!
     // This is likely because you have not set up environment variables.
-    // Check out http://localhost:3000 for Next Steps.
+    // Check out https://prolx.cloud/sign-in for Next Steps.
     return NextResponse.next({
       request: {
         headers: request.headers,

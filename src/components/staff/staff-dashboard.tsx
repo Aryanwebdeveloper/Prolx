@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock } from "lucide-react";
+import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "../../../supabase/client";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { formatCertDate, getCertStatus } from "@/lib/certificates";
 import { ImageUpload } from "../ui/image-upload";
 import Image from "next/image";
 import AttendancePanel from "@/components/staff/attendance-panel";
+import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
 
 type Certificate = {
   id: string;
@@ -106,6 +107,7 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
   const navItems = [
     { icon: Clock, label: "Attendance", id: "attendance" },
     { icon: Award, label: "My Certificates", id: "certificates" },
+    { icon: UserCog, label: "My Team Settings", id: "team-settings" },
     { icon: User, label: "My Profile", id: "profile" },
   ];
 
@@ -200,6 +202,10 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
             <>
               {active === "attendance" && (
                 <AttendancePanel userId={user.id} />
+              )}
+
+              {active === "team-settings" && (
+                <MyTeamProfilePanel />
               )}
 
               {active === "certificates" && (

@@ -11,11 +11,28 @@ import type { LetterType } from "@/types/erp";
 export async function generateLetterId(): Promise<string> {
   const supabase = await createClient();
   const year = new Date().getFullYear();
-  const { count } = await supabase
+  const prefix = `LTR-${year}-`;
+
+  // Find the highest ID for the current year
+  const { data } = await supabase
     .from("company_letters")
-    .select("*", { count: "exact", head: true });
-  const next = ((count || 0) + 1).toString().padStart(4, "0");
-  return `LTR-${year}-${next}`;
+    .select("id")
+    .like("id", `${prefix}%`)
+    .order("id", { ascending: false })
+    .limit(1)
+    .single();
+
+  let nextNumber = 1;
+  if (data?.id) {
+    const parts = data.id.split("-");
+    const lastNum = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastNum)) {
+      nextNumber = lastNum + 1;
+    }
+  }
+
+  const next = nextNumber.toString().padStart(4, "0");
+  return `${prefix}${next}`;
 }
 
 // ============================================================
