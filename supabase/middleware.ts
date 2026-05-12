@@ -47,9 +47,6 @@ export const updateSession = async (request: NextRequest) => {
       return NextResponse.redirect(new URL("https://prolx.cloud/sign-in", request.url));
     }
 
-    if (request.nextUrl.pathname === "/" && !error) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
 
     // Role-based session expiry check
     if (user && !request.nextUrl.pathname.startsWith("/sign-in")) {

@@ -977,6 +977,7 @@ export type Database = {
       }
       team_members: {
         Row: {
+          bio: string | null
           created_at: string | null
           department: string | null
           display_order: number | null
@@ -985,6 +986,8 @@ export type Database = {
           github_url: string | null
           id: string
           is_active: boolean | null
+          is_visible: boolean | null
+          linked_user_id: string | null
           linkedin_url: string | null
           photo_url: string | null
           role: string
@@ -992,6 +995,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          bio?: string | null
           created_at?: string | null
           department?: string | null
           display_order?: number | null
@@ -1000,6 +1004,8 @@ export type Database = {
           github_url?: string | null
           id?: string
           is_active?: boolean | null
+          is_visible?: boolean | null
+          linked_user_id?: string | null
           linkedin_url?: string | null
           photo_url?: string | null
           role: string
@@ -1007,6 +1013,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          bio?: string | null
           created_at?: string | null
           department?: string | null
           display_order?: number | null
@@ -1015,13 +1022,23 @@ export type Database = {
           github_url?: string | null
           id?: string
           is_active?: boolean | null
+          is_visible?: boolean | null
+          linked_user_id?: string | null
           linkedin_url?: string | null
           photo_url?: string | null
           role?: string
           skills?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_members_linked_user_id_fkey"
+            columns: ["linked_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       testimonials: {
         Row: {

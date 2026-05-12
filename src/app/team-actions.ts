@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 export async function getTeamMembers(activeOnly = true) {
   const supabase = await createClient();
   // Using explicit join with linked_user_id
-  let query = supabase.from("team_members").select("*, profiles!team_members_linked_user_id_fkey(full_name, avatar_url, bio)").order("display_order", { ascending: true });
+  let query = supabase.from("team_members").select("*, profiles(full_name, avatar_url, bio)").order("display_order", { ascending: true });
   
   if (activeOnly) {
     // Only show members who are both active AND marked visible by admin

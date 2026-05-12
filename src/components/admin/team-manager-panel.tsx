@@ -59,6 +59,17 @@ export default function TeamManagerPanel() {
     }
   };
 
+  const handleDelink = async (id: string) => {
+    if (!confirm("Remove the link to user account for this member? They will no longer be able to manage their own profile.")) return;
+    const { error } = await updateTeamMember(id, { linked_user_id: null });
+    if (error) {
+      setMessage({ type: "error", text: "Failed to delink: " + error.message });
+    } else {
+      setMessage({ type: "success", text: "User account delinked successfully." });
+      loadData();
+    }
+  };
+
   const handleSave = async () => {
     const payload = { ...form, linked_user_id: form.linked_user_id === "" ? null : form.linked_user_id };
     let res;
@@ -137,9 +148,14 @@ export default function TeamManagerPanel() {
               <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Link to User Profile (Optional)</label>
               <select value={form.linked_user_id} onChange={e => setForm({...form, linked_user_id: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-[#E2E8F0] text-sm text-[#64748B]">
                 <option value="">No User Linked</option>
-                {profiles.map(p => (
-                  <option key={p.id} value={p.id}>{p.full_name || p.email} ({p.role})</option>
-                ))}
+                {profiles.map(p => {
+                  const isAlreadyLinked = items.some(item => item.linked_user_id === p.id && item.id !== editingId);
+                  return (
+                    <option key={p.id} value={p.id} disabled={isAlreadyLinked}>
+                      {p.full_name || p.email} ({p.role}) {isAlreadyLinked ? "— [Already Linked]" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -238,7 +254,15 @@ export default function TeamManagerPanel() {
                   <tr key={item.id || i} className="border-b border-[#F8FAFC] hover:bg-[#F8FAFC] transition-colors">
                     <td className="py-3 px-4">
                       <div className="font-medium text-[#0F172A]">{item.full_name}</div>
-                      {item.linked_user_id && <div className="text-[10px] text-[#0D9488] font-mono">Linked to User</div>}
+                      {item.linked_user_id ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[10px] text-[#0D9488] font-semibold bg-[#F0FDFA] px-1.5 py-0.5 rounded">
+                            Linked: {item.profiles?.full_name || 'User Account'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-[#94A3B8] italic mt-0.5">Not linked to any account</div>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-[#64748B]">{item.role}</td>
                     <td className="py-3 px-4 text-[#64748B]">{item.department}</td>
@@ -254,8 +278,17 @@ export default function TeamManagerPanel() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleEdit(item)} className="p-1.5 rounded-lg hover:bg-[#F0FDFA] text-[#0D9488] transition-colors"><Edit size={14} /></button>
-                        <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-[#EF4444] transition-colors"><Trash2 size={14} /></button>
+                        {item.linked_user_id && (
+                          <button 
+                            onClick={() => handleDelink(item.id)} 
+                            className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
+                            title="Delink User"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                        <button onClick={() => handleEdit(item)} className="p-1.5 rounded-lg hover:bg-[#F0FDFA] text-[#0D9488] transition-colors" title="Edit Member"><Edit size={14} /></button>
+                        <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-[#EF4444] transition-colors" title="Delete Member"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>

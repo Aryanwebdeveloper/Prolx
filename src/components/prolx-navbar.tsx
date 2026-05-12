@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, User } from "lucide-react";
+import { createClient } from "../../supabase/client";
 
 const navLinks = [
   { label: "Services", href: "/services" },
@@ -19,6 +20,22 @@ const navLinks = [
 export default function ProlxNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -57,6 +74,22 @@ export default function ProlxNavbar() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2.5 text-sm font-semibold text-[#0D9488] border-2 border-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <User size={16} />
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/sign-in"
+                className="px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:text-[#0D9488] transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
             <Link
               href="/contact"
               className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0D9488] rounded-lg hover:bg-[#0F766E] active:scale-95 transition-all"
@@ -105,6 +138,23 @@ export default function ProlxNavbar() {
           >
             Install Mobile App
           </button>
+          {user ? (
+            <Link
+              href="/dashboard"
+              onClick={() => setMobileOpen(false)}
+              className="px-6 py-3 text-center font-semibold text-[#0D9488] border-2 border-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 transition-all"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/sign-in"
+              onClick={() => setMobileOpen(false)}
+              className="px-6 py-3 text-center font-semibold text-[#64748B] border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
+            >
+              Sign In
+            </Link>
+          )}
           <Link
             href="/contact"
             onClick={() => setMobileOpen(false)}
