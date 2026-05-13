@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev --webpack",
+    "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build --webpack",
     "start": "next start",
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",

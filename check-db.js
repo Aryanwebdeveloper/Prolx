@@ -15,7 +15,7 @@ if (!supabaseUrlMatch || !supabaseKeyMatch) {
 const url = supabaseUrlMatch[1];
 const key = supabaseKeyMatch[1];
 
-const reqUrl = new URL(`${url}/rest/v1/team_members?select=id,full_name,user_id`);
+const reqUrl = new URL(`${url}/rest/v1/team_members?select=id,full_name,linked_user_id`);
 
 const options = {
   hostname: reqUrl.hostname,

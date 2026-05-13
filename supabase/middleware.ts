@@ -44,7 +44,7 @@ export const updateSession = async (request: NextRequest) => {
 
     // protected routes
     if (request.nextUrl.pathname.startsWith("/dashboard") && error) {
-      return NextResponse.redirect(new URL("https://prolx.cloud/sign-in", request.url));
+      return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
 
@@ -64,7 +64,7 @@ export const updateSession = async (request: NextRequest) => {
       
       if (now - loginTime > maxAge) {
         await supabase.auth.signOut();
-        return NextResponse.redirect(new URL("https://prolx.cloud/sign-in", request.url));
+        return NextResponse.redirect(new URL("/sign-in", request.url));
       }
     }
 
