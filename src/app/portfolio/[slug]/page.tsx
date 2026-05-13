@@ -110,6 +110,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             src={caseStudy.hero_image_url || project.featured_image_url} 
             alt={project.name}
             fill
+            sizes="(max-width: 1280px) 100vw, 1280px"
             className="object-cover"
             priority
           />
@@ -220,7 +221,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                   </h4>
                   <div className="space-y-8 relative z-10">
                     {metrics && metrics.length > 0 ? metrics.map((m: any, idx: number) => (
-                      <div key={idx} className="animate-in fade-in slide-in-from-right-4 duration-500 delay-[200ms]">
+                      <div key={idx} className="animate-in fade-in slide-in-from-right-4 duration-500 [animation-delay:200ms]">
                         <div className="text-4xl font-black text-[#0F172A] mb-1">{m.value}</div>
                         <div className="text-xs font-black uppercase tracking-widest text-[#0D9488] mb-1">{m.label}</div>
                         <div className="text-sm text-[#64748B] leading-snug">{m.desc}</div>
@@ -261,6 +262,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                     src={url} 
                     alt={`Interface Preview ${idx + 1}`} 
                     fill 
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover transition-transform duration-700 group-hover:scale-110" 
                   />
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">

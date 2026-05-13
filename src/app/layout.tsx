@@ -1,10 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Bricolage_Grotesque, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LiveTracker } from "@/components/live-tracker";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: '--font-inter',
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: '--font-bricolage',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: '--font-fraunces',
+  style: ['normal', 'italic'],
+  weight: ['400', '600', '700'],
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: '--font-plus-jakarta',
+  weight: ['400', '500', '600', '700'],
+});
 
 export const metadata: Metadata = {
   title: "Prolx Digital Agency — Premium Web Development & Digital Products",
@@ -49,8 +71,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable} ${fraunces.variable} ${plusJakarta.variable}`}>
+      <body className={plusJakarta.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

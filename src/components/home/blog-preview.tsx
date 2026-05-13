@@ -84,6 +84,7 @@ export default async function BlogPreview() {
                   src={post.featured_image_url || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&q=80"}
                   alt={post.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute top-4 left-4">

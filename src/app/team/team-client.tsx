@@ -90,7 +90,7 @@ export default function TeamClient({ members, departments }: { members: any[]; d
                   className="group bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:border-[#2DD4BF] hover:shadow-xl transition-all duration-300 flex flex-col"
                 >
                   <div className="relative h-56 overflow-hidden bg-[#F0FDFA]">
-                    <Image src={photo_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80"} alt={full_name} fill className="object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={photo_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80"} alt={full_name} fill sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover object-top group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0D9488]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     
                     {/* Active Status Badge */}

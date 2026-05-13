@@ -13,6 +13,9 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+    compiler: {
+        removeConsole: process.env.NODE_ENV === "production",
+    },
     images: {
         remotePatterns: [
             {
@@ -41,6 +44,7 @@ const nextConfig = {
     devIndicators: {
         buildActivity: false,
     },
+    turbopack: {},
 };
 
 

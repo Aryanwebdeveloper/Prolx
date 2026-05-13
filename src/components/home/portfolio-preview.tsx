@@ -65,6 +65,7 @@ export default async function PortfolioPreview() {
                     src={img}
                     alt={title}
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/60 to-transparent" />
