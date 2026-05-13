@@ -1,8 +1,9 @@
 const fs = require('fs');
 const https = require('https');
 
-// Extract Supabase URL and Key from .env.local
-const envFile = fs.readFileSync('.env.local', 'utf8');
+// Extract Supabase URL and Key from .env or .env.local
+const envPath = fs.existsSync('.env.local') ? '.env.local' : '.env';
+const envFile = fs.readFileSync(envPath, 'utf8');
 const supabaseUrlMatch = envFile.match(/NEXT_PUBLIC_SUPABASE_URL=([^\r\n]+)/);
 const supabaseKeyMatch = envFile.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=([^\r\n]+)/);
 
