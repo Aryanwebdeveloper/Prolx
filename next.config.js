@@ -13,6 +13,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+    allowedDevOrigins: ['prolx.cloud'],
     compiler: {
         removeConsole: process.env.NODE_ENV === "production",
     },
@@ -46,7 +47,5 @@ const nextConfig = {
     },
     turbopack: {},
 };
-
-
 
 module.exports = withPWA(nextConfig);
