@@ -13,7 +13,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-    allowedDevOrigins: process.env.NODE_ENV === "development" ? ['localhost', '127.0.0.1'] : [],
+    allowedDevOrigins: process.env.NODE_ENV === "development" ? ['localhost', '127.0.0.1', 'prolx.cloud', '*.prolx.cloud'] : [],
     compiler: {
         removeConsole: process.env.NODE_ENV === "production",
     },
