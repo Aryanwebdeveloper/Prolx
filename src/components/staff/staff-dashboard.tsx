@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog } from "lucide-react";
+import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog, Eye, FileDown, Share2 } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "../../../supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUserCertificates, getUserProfile, updateProfile } from "@/app/certificate-actions";
-import { formatCertDate, getCertStatus } from "@/lib/certificates";
+import { formatCertDate, getCertStatus, CERTIFICATE_CONFIGS, CertificateType } from "@/lib/certificates";
 import { ImageUpload } from "../ui/image-upload";
 import Image from "next/image";
 import AttendancePanel from "@/components/staff/attendance-panel";
 import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
+import { generateCertificatePDF } from "@/lib/certificate-generator";
+import { saveAs } from "file-saver";
 
 type Certificate = {
   id: string;
@@ -23,6 +25,9 @@ type Certificate = {
   status: string;
   category: string;
   issued_by: string;
+  certificate_type: string;
+  internship_field?: string;
+  qr_code_url?: string;
 };
 
 type Profile = {
@@ -37,9 +42,10 @@ type Profile = {
 };
 
 const statusColors = {
-  active: "bg-emerald-100 text-emerald-700",
-  inactive: "bg-gray-100 text-gray-600",
-  expired: "bg-orange-100 text-orange-700",
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
+  inactive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  expired: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
+  revoked: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400",
 };
 
 export default function StaffDashboard({ user }: { user: SupabaseUser }) {
@@ -53,6 +59,8 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState({ text: "", type: "" });
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewingName, setPreviewingName] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -209,61 +217,135 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
               )}
 
               {active === "certificates" && (
-                <div className="space-y-6">
+                <div className="space-y-6 text-[#0F172A]">
                   {/* Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
                       { label: "Total Certificates", value: certs.length, color: "text-[#0F172A]" },
-                      { label: "Active", value: certs.filter(c => getCertStatus(c.status, c.expiry_date) === "active").length, color: "text-emerald-600" },
+                      { label: "Active Credentials", value: certs.filter(c => getCertStatus(c.status, c.expiry_date) === "active").length, color: "text-emerald-600" },
+                      { label: "Revoked/Voided", value: certs.filter(c => getCertStatus(c.status, c.expiry_date) === "revoked").length, color: "text-rose-500" },
                       { label: "Expired", value: certs.filter(c => getCertStatus(c.status, c.expiry_date) === "expired").length, color: "text-orange-500" },
                     ].map(({ label, value, color }) => (
-                      <div key={label} className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-                        <div className={`text-2xl font-bold font-mono ${color}`}>{value}</div>
-                        <div className="text-xs text-[#64748B] mt-1">{label}</div>
+                      <div key={label} className="bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-sm">
+                        <div className="text-xs text-[#64748B]">{label}</div>
+                        <div className={`text-2xl font-bold font-mono mt-1 ${color}`}>{value}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Certificates List */}
-                  <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
-                    <div className="p-6 border-b border-[#E2E8F0]">
+                  {/* Certificates List - Card Grid */}
+                  <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
                       <h2 className="font-bold text-[#0F172A] text-lg" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
-                        My Certificates
+                        My Official Credentials & Certifications
                       </h2>
+                      <span className="text-xs text-slate-400">Verifiable dynamically via QR</span>
                     </div>
+
                     {certs.length === 0 ? (
-                      <div className="p-12 text-center">
-                        <Award size={32} className="text-[#CBD5E1] mx-auto mb-3" />
-                        <p className="text-[#64748B] text-sm">No certificates assigned yet.</p>
+                      <div className="py-16 text-center">
+                        <Award size={36} className="text-[#CBD5E1] mx-auto mb-3" />
+                        <p className="text-[#64748B] text-sm">No certificates have been assigned to you yet.</p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-[#F8FAFC]">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {certs.map(cert => {
                           const computed = getCertStatus(cert.status, cert.expiry_date);
+                          const config = CERTIFICATE_CONFIGS[cert.certificate_type as CertificateType] || CERTIFICATE_CONFIGS.internship;
+                          
+                          // Handle Preview
+                          const handlePreview = async () => {
+                            try {
+                              const blob = await generateCertificatePDF({
+                                type: (cert.certificate_type as CertificateType) || "internship",
+                                recipientName: cert.recipient_name,
+                                certId: cert.id,
+                                issueDate: cert.issue_date,
+                                internshipField: cert.internship_field,
+                                verificationUrl: cert.qr_code_url || `${window.location.origin}/certificates/${cert.id}`,
+                              });
+                              const url = URL.createObjectURL(blob);
+                              setPreviewBlobUrl(url);
+                              setPreviewingName(cert.recipient_name);
+                            } catch (err) {
+                              alert("Error generating preview: " + (err as Error).message);
+                            }
+                          };
+
+                          // Handle Download
+                          const handleDownload = async () => {
+                            try {
+                              const blob = await generateCertificatePDF({
+                                type: (cert.certificate_type as CertificateType) || "internship",
+                                recipientName: cert.recipient_name,
+                                certId: cert.id,
+                                issueDate: cert.issue_date,
+                                internshipField: cert.internship_field,
+                                verificationUrl: cert.qr_code_url || `${window.location.origin}/certificates/${cert.id}`,
+                              });
+                              saveAs(blob, `PROLX-CERT-${cert.recipient_name.replace(/\s+/g, "_")}-${cert.id}.pdf`);
+                            } catch (err) {
+                              alert("Error downloading PDF: " + (err as Error).message);
+                            }
+                          };
+
                           return (
-                            <div key={cert.id} className="p-5 hover:bg-[#F8FAFC] transition-colors">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[computed]}`}>
-                                      {computed}
-                                    </span>
-                                    <span className="text-xs text-[#94A3B8]">{cert.category}</span>
-                                  </div>
-                                  <h3 className="font-semibold text-[#0F172A] mb-1">{cert.title}</h3>
-                                  <p className="text-xs text-[#64748B]">
-                                    Issued: {formatCertDate(cert.issue_date)}
-                                    {cert.expiry_date && ` · Expires: ${formatCertDate(cert.expiry_date)}`}
-                                  </p>
-                                  <p className="text-xs text-[#94A3B8] mt-0.5">By: {cert.issued_by}</p>
+                            <div key={cert.id} className="group relative bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+                              {/* Certificate Template Thumbnail Representation */}
+                              <div className="aspect-[1.414/1] w-full bg-slate-50 border-b border-[#E2E8F0] relative overflow-hidden flex items-center justify-center">
+                                <img
+                                  src={config.templatePath}
+                                  alt={config.displayName}
+                                  className="w-full h-full object-cover opacity-90 group-hover:scale-102 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/0 transition-colors" />
+                                <div className="absolute top-3 right-3">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize shadow-sm ${statusColors[computed]}`}>
+                                    {computed}
+                                  </span>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="font-mono text-xs text-[#0D9488] bg-[#F0FDFA] px-2.5 py-1 rounded-lg">{cert.id}</span>
-                                  <button onClick={() => handleCopyId(cert.id)} className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#0D9488] hover:bg-[#F0FDFA] transition-colors" title="Copy ID">
-                                    {copiedId === cert.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                                  </button>
-                                  <a href={`/certificates/${cert.id}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#0D9488] hover:bg-[#F0FDFA] transition-colors" title="View Verification Page">
-                                    <ExternalLink size={14} />
+                              </div>
+
+                              {/* Card details */}
+                              <div className="p-4 flex-1 flex flex-col justify-between">
+                                <div>
+                                  <div className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider mb-1">{cert.category}</div>
+                                  <h3 className="font-semibold text-sm line-clamp-1 text-slate-800">{cert.title}</h3>
+                                  {cert.internship_field && <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{cert.internship_field}</p>}
+                                  
+                                  <div className="mt-3 space-y-1 text-xs text-slate-400">
+                                    <div className="flex justify-between">
+                                      <span>Issued on:</span>
+                                      <span className="font-medium text-slate-600">{formatCertDate(cert.issue_date)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Certificate ID:</span>
+                                      <span className="font-mono font-medium text-[#0D9488]">{cert.id}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Actions Bar */}
+                                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                  <div className="flex gap-1">
+                                    <button onClick={handlePreview} className="p-1.5 hover:bg-slate-50 rounded text-slate-600 hover:text-[#0D9488]" title="View Certificate">
+                                      <Eye size={15} />
+                                    </button>
+                                    <button onClick={handleDownload} className="p-1.5 hover:bg-slate-50 rounded text-slate-600 hover:text-[#0D9488]" title="Download PDF">
+                                      <FileDown size={15} />
+                                    </button>
+                                    <button onClick={() => handleCopyId(cert.id)} className="p-1.5 hover:bg-slate-50 rounded text-slate-600 hover:text-[#0D9488]" title="Copy ID">
+                                      {copiedId === cert.id ? <Check size={15} className="text-emerald-500" /> : <Copy size={15} />}
+                                    </button>
+                                  </div>
+                                  
+                                  <a
+                                    href={`/certificates/${cert.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0D9488] hover:text-[#0F766E] transition-colors"
+                                  >
+                                    Verify Page <ExternalLink size={11} />
                                   </a>
                                 </div>
                               </div>
@@ -393,6 +475,35 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
           )}
         </div>
       </main>
+
+      {/* Dynamic Preview Modal */}
+      {previewBlobUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-100">
+              <h3 className="font-bold text-sm">
+                Document Preview: {previewingName}
+              </h3>
+              <button
+                onClick={() => {
+                  URL.revokeObjectURL(previewBlobUrl);
+                  setPreviewBlobUrl(null);
+                }}
+                className="p-1 hover:bg-slate-100 rounded"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 bg-slate-100">
+              <iframe
+                src={previewBlobUrl}
+                className="w-full h-full border-none"
+                title="Certificate Preview"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

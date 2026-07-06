@@ -43,6 +43,10 @@ export default async function CertificateVerificationPage({ params }: Props) {
     status: data.status as string,
     issued_by: data.issued_by as string,
     category: data.category as string,
+    certificate_type: data.certificate_type as string | undefined,
+    internship_field: data.internship_field as string | undefined,
+    revoked_at: data.revoked_at as string | undefined,
+    revoked_reason: data.revoked_reason as string | undefined,
     profiles: profileObj ? { full_name: profileObj.full_name as string } : null,
   };
 

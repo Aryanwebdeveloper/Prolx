@@ -41,6 +41,7 @@ const statusColors = {
   active: "bg-emerald-100 text-emerald-700",
   inactive: "bg-gray-100 text-gray-600",
   expired: "bg-orange-100 text-orange-700",
+  revoked: "bg-rose-100 text-rose-700",
 };
 
 export default function ClientDashboard({ user }: { user: SupabaseUser }) {

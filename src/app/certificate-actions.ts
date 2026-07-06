@@ -2,7 +2,7 @@
 
 import { createClient } from "../../supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { generateCertificateId } from "@/lib/certificates";
+import { generateCertificateId, getCertVerificationUrl } from "@/lib/certificates";
 import { revalidatePath } from "next/cache";
 
 // Helper for admin auth actions
@@ -100,7 +100,7 @@ export async function getAllCertificates() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("certificates")
-    .select("*, profiles(full_name, email, role, avatar_url)")
+    .select("*, profiles:profiles!certificates_user_id_fkey(full_name, email, role, avatar_url)")
     .order("created_at", { ascending: false });
   return { data, error };
 }
@@ -119,7 +119,7 @@ export async function getCertificateById(certId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("certificates")
-    .select("*, profiles(full_name, email, role, avatar_url)")
+    .select("*, profiles:profiles!certificates_user_id_fkey(full_name, email, role, avatar_url)")
     .eq("id", certId)
     .single();
   return { data, error };
@@ -127,35 +127,61 @@ export async function getCertificateById(certId: string) {
 
 export async function createCertificate(payload: {
   user_id: string;
-  title: string;
-  description?: string;
+  certificate_type: string;
+  internship_field?: string;
+  issue_date: string;
   recipient_name: string;
   recipient_email?: string;
-  issue_date: string;
-  expiry_date?: string;
-  category?: string;
-  issued_by?: string;
+  title: string;
+  category: string;
 }) {
   const supabase = await createClient();
-  const certId = generateCertificateId();
+  
+  // Get current admin user ID to track who created it
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+  // Generate unique short ID: PROLX-XXXXXX (6 uppercase alphanumeric chars)
+  // Using JS generator directly for consistent short format across all environments
+  let certId = generateCertificateId();
+  
+  // Ensure uniqueness against existing certificates (retry up to 5 times)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: existing } = await supabase
+      .from('certificates')
+      .select('id')
+      .eq('id', certId)
+      .maybeSingle();
+    if (!existing) break; // ID is unique
+    certId = generateCertificateId();   // collision — regenerate
+  }
+
+  const verificationUrl = getCertVerificationUrl(certId);
 
   const { data, error } = await supabase
     .from("certificates")
     .insert({
       id: certId,
+      user_id: payload.user_id,
+      recipient_name: payload.recipient_name,
+      recipient_email: payload.recipient_email || null,
+      title: payload.title,
+      category: payload.category,
+      issue_date: payload.issue_date,
       status: "active",
       issued_by: "Prolx Digital Agency",
-      ...payload,
+      certificate_type: payload.certificate_type,
+      internship_field: payload.internship_field || null,
+      qr_code_url: verificationUrl,
+      created_by: currentUser?.id || null,
     })
     .select()
     .single();
 
   // Log activity
   if (!error) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    if (currentUser) {
       await supabase.from("activity_logs").insert({
-        user_id: user.id,
+        user_id: currentUser.id,
         action: "CREATE_CERTIFICATE",
         target_type: "certificate",
         target_id: certId,
@@ -205,23 +231,38 @@ export async function createCertificate(payload: {
 
 export async function updateCertificate(certId: string, payload: {
   title?: string;
-  description?: string;
-  recipient_name?: string;
-  recipient_email?: string;
   issue_date?: string;
-  expiry_date?: string;
-  status?: "active" | "inactive" | "expired";
+  status?: "active" | "inactive" | "expired" | "revoked";
   category?: string;
+  internship_field?: string;
+  revoked_reason?: string;
 }) {
   const supabase = await createClient();
+  
+  // If revoking, automatically set revoked_at
+  const updates: any = { ...payload };
+  if (payload.status === 'revoked') {
+    updates.revoked_at = new Date().toISOString();
+  } else if (payload.status === 'active' || payload.status === 'inactive') {
+    updates.revoked_at = null;
+    updates.revoked_reason = null;
+  }
+
   const { data, error } = await supabase
     .from("certificates")
-    .update(payload)
+    .update(updates)
     .eq("id", certId)
     .select()
     .single();
   revalidatePath("/dashboard");
   return { data, error };
+}
+
+export async function revokeCertificate(certId: string, reason?: string) {
+  return updateCertificate(certId, {
+    status: "revoked",
+    revoked_reason: reason || "Revoked by Administrator",
+  });
 }
 
 export async function deleteCertificate(certId: string) {
@@ -234,31 +275,105 @@ export async function deleteCertificate(certId: string) {
   return { error };
 }
 
+export async function bulkRevokeCertificates(certIds: string[], reason?: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("certificates")
+    .update({
+      status: "revoked",
+      revoked_reason: reason || "Revoked by Bulk Action",
+      revoked_at: new Date().toISOString(),
+    })
+    .in("id", certIds);
+  revalidatePath("/dashboard");
+  return { error };
+}
+
+export async function bulkDeleteCertificates(certIds: string[]) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("certificates")
+    .delete()
+    .in("id", certIds);
+  revalidatePath("/dashboard");
+  return { error };
+}
+
 export async function verifyCertificate(certId: string) {
   if (!certId || typeof certId !== "string") {
     return { data: null, error: new Error("Invalid Certificate ID") };
   }
-  const supabase = await createClient();
+  const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("certificates")
-    .select("id, title, description, recipient_name, recipient_email, issue_date, expiry_date, status, issued_by, category, created_at, profiles(full_name)")
+    .select("*, profiles:profiles!certificates_user_id_fkey(full_name)")
     .eq("id", certId.trim().toUpperCase())
     .single();
   return { data, error };
 }
 
 // ====================================================
-// ANALYTICS
+// ANALYTICS & STATS
 // ====================================================
+
+export async function getCertificateStats() {
+  const supabase = await createClient();
+  
+  const { data: certs, error } = await supabase
+    .from("certificates")
+    .select("certificate_type, status");
+    
+  if (error || !certs) {
+    return {
+      total: 0,
+      internships: 0,
+      awards: 0,
+      excellence: 0,
+      active: 0,
+      revoked: 0,
+    };
+  }
+
+  let total = certs.length;
+  let internships = 0;
+  let awards = 0;
+  let excellence = 0;
+  let active = 0;
+  let revoked = 0;
+
+  certs.forEach((c) => {
+    const type = c.certificate_type || 'internship';
+    if (type.startsWith('internship')) {
+      internships++;
+    } else if (type === 'opa') {
+      awards++;
+    } else if (type === 'excellence') {
+      excellence++;
+    }
+
+    if (c.status === 'active') active++;
+    if (c.status === 'revoked') revoked++;
+  });
+
+  return {
+    total,
+    internships,
+    awards,
+    excellence,
+    active,
+    revoked,
+  };
+}
 
 export async function getDashboardStats() {
   const supabase = await createClient();
 
-  const [profilesRes, certsRes, pendingRes, activeRes] = await Promise.all([
+  const [profilesRes, certsRes, pendingRes, activeRes, revokedRes] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact" }),
     supabase.from("certificates").select("id", { count: "exact" }),
     supabase.from("profiles").select("id", { count: "exact" }).eq("status", "pending"),
     supabase.from("certificates").select("id", { count: "exact" }).eq("status", "active"),
+    supabase.from("certificates").select("id", { count: "exact" }).eq("status", "revoked"),
   ]);
 
   return {
@@ -266,6 +381,7 @@ export async function getDashboardStats() {
     totalCerts: certsRes.count ?? 0,
     pendingApprovals: pendingRes.count ?? 0,
     activeCerts: activeRes.count ?? 0,
+    revokedCerts: revokedRes.count ?? 0,
   };
 }
 
