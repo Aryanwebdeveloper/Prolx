@@ -14,12 +14,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
 
-const TYPE_OPTIONS = ["announcement", "task", "meeting", "urgent"] as const;
+const TYPE_OPTIONS = ["announcement", "meeting", "urgent"] as const;
 const PRIORITY_OPTIONS = ["low", "normal", "high", "urgent"] as const;
 
 const TYPE_CONFIG = {
   announcement: { label: "Announcement", icon: Bell, color: "bg-blue-100 text-blue-700" },
-  task: { label: "Task", icon: CheckCircle, color: "bg-emerald-100 text-emerald-700" },
   meeting: { label: "Meeting", icon: Clock, color: "bg-purple-100 text-purple-700" },
   urgent: { label: "Urgent", icon: AlertCircle, color: "bg-red-100 text-red-700" },
 };
@@ -84,8 +83,8 @@ function AnnouncementForm({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{item?.id ? "Edit Announcement" : "Create Announcement / Task"}</DialogTitle>
-          <DialogDescription>Send updates, task assignments, or meeting alerts to your staff.</DialogDescription>
+          <DialogTitle>{item?.id ? "Edit Announcement" : "Create Announcement"}</DialogTitle>
+          <DialogDescription>Send updates or meeting alerts to your staff.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div>
@@ -128,7 +127,7 @@ function AnnouncementForm({
             <label className="block text-xs font-medium text-[#64748B] mb-1.5">Message Body <span className="text-red-500">*</span></label>
             <textarea value={body} onChange={e => setBody(e.target.value)} rows={5}
               className="w-full px-3 py-2.5 text-sm border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 resize-none"
-              placeholder="Write the full announcement or task description..." />
+              placeholder="Write the full announcement or meeting description..." />
           </div>
 
           <div>
@@ -235,8 +234,8 @@ export default function AnnouncementsManagerPanel() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F172A]">Announcements & Tasks</h1>
-          <p className="text-sm text-[#64748B] mt-0.5">Send updates, task assignments, and meeting alerts to staff</p>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Announcements</h1>
+          <p className="text-sm text-[#64748B] mt-0.5">Send updates and meeting alerts to staff</p>
         </div>
         <button onClick={() => { setEditItem(null); setShowForm(true); }}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm rounded-xl hover:bg-[#0f766e] font-semibold shadow-sm">

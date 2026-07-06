@@ -7,7 +7,8 @@ import {
   DollarSign, MessageSquare, Briefcase as CareerIcon, Settings,
   TrendingUp, Eye, Mail, BarChart3, Menu, X, LogOut, Calendar,
   PlusCircle, Edit, Trash2, Download, Save, UserCog, Award, CheckCircle,
-  Receipt, FileSignature, Clock, Bell, FormInput, User as UserIcon
+  Receipt, FileSignature, Clock, Bell, FormInput, User as UserIcon,
+  CheckSquare
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "../../../supabase/client";
@@ -35,6 +36,9 @@ import InterviewManagementPanel from "@/components/admin/interview-management-pa
 import EmailLogsPanel from "@/components/admin/email-logs-panel";
 import MyAccountPanel from "@/components/admin/my-account-panel";
 import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
+import TeamChatPanel from "@/components/admin/team-chat-panel";
+import TaskManagerPanel from "@/components/admin/task-manager-panel";
+import { getUnreadMessagesCount } from "@/app/communication-actions";
 
 const statsCards = [
   { label: "Total Visitors", value: "12,847", trend: "+18%", icon: Eye, color: "teal" },
@@ -49,9 +53,13 @@ const getNavItems = (role: string) => {
     { icon: UserIcon, label: "My Account", id: "my-account" },
   ];
 
-  // Staff items
+  // Staff & admin shared items
   if (role === "staff" || role === "admin") {
-    baseItems.push({ icon: UserCog, label: "My Team Settings", id: "my-profile" });
+    baseItems.push(
+      { icon: UserCog, label: "My Team Settings", id: "my-profile" },
+      { icon: MessageSquare, label: "Team Chat", id: "team-chat" },
+      { icon: CheckSquare, label: "My Tasks", id: "tasks" },
+    );
   }
 
   // Admin-only items
@@ -96,6 +104,8 @@ export default function AdminDashboard({ user }: { user: User }) {
 
   // Get user profile to determine role
   const [profile, setProfile] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   useEffect(() => {
     const fetchProfile = async () => {
       const { data } = await createClient().from("profiles").select("*").eq("id", user.id).single();
@@ -106,6 +116,42 @@ export default function AdminDashboard({ user }: { user: User }) {
     };
     fetchProfile();
   }, [user.id]);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      const count = await getUnreadMessagesCount();
+      setUnreadCount(count);
+    };
+    loadUnreadCount();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("sidebar-unread-messages-admin")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "team_messages" },
+        () => {
+          loadUnreadCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "team_message_reads" },
+        () => {
+          loadUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user.id]);
+  useEffect(() => {
+    if (active === "team-chat") {
+      setUnreadCount(0);
+    }
+  }, [active]);
 
   const role = profile?.role || "client";
   const navItems = getNavItems(role);
@@ -143,14 +189,21 @@ export default function AdminDashboard({ user }: { user: User }) {
             <button
               key={id}
               onClick={() => { setActive(id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-5 py-3 text-sm transition-colors ${
+              className={`w-full flex items-center justify-between px-5 py-3 text-sm transition-colors ${
                 active === id
                   ? "bg-[#0D9488] text-white"
                   : "text-[#94A3B8] hover:bg-white/5 hover:text-white"
               }`}
             >
-              <Icon size={18} />
-              {label}
+              <div className="flex items-center gap-3">
+                <Icon size={18} />
+                {label}
+              </div>
+              {id === "team-chat" && unreadCount > 0 && active !== "team-chat" && (
+                <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full select-none shrink-0 mr-1 animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -232,6 +285,8 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "attendance" && <AttendanceManagerPanel />}
           {active === "announcements" && <AnnouncementsManagerPanel />}
           {active === "settings" && <SettingsPanel />}
+          {active === "team-chat" && <TeamChatPanel user={user} userRole={role} />}
+          {active === "tasks" && <TaskManagerPanel user={user} userRole={role} />}
         </div>
       </main>
     </div>

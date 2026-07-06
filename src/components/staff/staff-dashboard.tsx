@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog, Eye, FileDown, Share2 } from "lucide-react";
+import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog, Eye, FileDown, Share2, MessageSquare, CheckSquare, Bell } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "../../../supabase/client";
 import { useRouter } from "next/navigation";
@@ -12,8 +12,12 @@ import { ImageUpload } from "../ui/image-upload";
 import Image from "next/image";
 import AttendancePanel from "@/components/staff/attendance-panel";
 import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
+import TeamChatPanel from "@/components/admin/team-chat-panel";
+import TaskManagerPanel from "@/components/admin/task-manager-panel";
+import AnnouncementsPanel from "@/components/staff/announcements-panel";
 import { generateCertificatePDF } from "@/lib/certificate-generator";
 import { saveAs } from "file-saver";
+import { getUnreadMessagesCount } from "@/app/communication-actions";
 
 type Certificate = {
   id: string;
@@ -61,6 +65,7 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
   const [passwordMessage, setPasswordMessage] = useState({ text: "", type: "" });
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [previewingName, setPreviewingName] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -76,6 +81,43 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
     }
     load();
   }, [user.id]);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      const count = await getUnreadMessagesCount();
+      setUnreadCount(count);
+    };
+    loadUnreadCount();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("sidebar-unread-messages-staff")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "team_messages" },
+        () => {
+          loadUnreadCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "team_message_reads" },
+        () => {
+          loadUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user.id]);
+
+  useEffect(() => {
+    if (active === "team-chat") {
+      setUnreadCount(0);
+    }
+  }, [active]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -114,6 +156,9 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
 
   const navItems = [
     { icon: Clock, label: "Attendance", id: "attendance" },
+    { icon: Bell, label: "Updates", id: "updates" },
+    { icon: MessageSquare, label: "Team Chat", id: "team-chat" },
+    { icon: CheckSquare, label: "My Tasks", id: "tasks" },
     { icon: Award, label: "My Certificates", id: "certificates" },
     { icon: UserCog, label: "My Team Settings", id: "team-settings" },
     { icon: User, label: "My Profile", id: "profile" },
@@ -150,14 +195,21 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
             <button
               key={id}
               onClick={() => { setActive(id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl transition-colors ${
+              className={`w-full flex items-center justify-between px-4 py-3 text-sm rounded-xl transition-colors ${
                 active === id
                   ? "bg-[#0D9488] text-white"
                   : "text-[#94A3B8] hover:bg-white/5 hover:text-white"
               }`}
             >
-              <Icon size={18} />
-              {label}
+              <div className="flex items-center gap-3">
+                <Icon size={18} />
+                {label}
+              </div>
+              {id === "team-chat" && unreadCount > 0 && active !== "team-chat" && (
+                <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full select-none shrink-0 mr-1 animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -210,6 +262,18 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
             <>
               {active === "attendance" && (
                 <AttendancePanel userId={user.id} />
+              )}
+
+              {active === "updates" && (
+                <AnnouncementsPanel userId={user.id} />
+              )}
+
+              {active === "team-chat" && (
+                <TeamChatPanel user={user} userRole="staff" />
+              )}
+
+              {active === "tasks" && (
+                <TaskManagerPanel user={user} userRole="staff" />
               )}
 
               {active === "team-settings" && (
