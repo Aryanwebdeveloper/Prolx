@@ -71,13 +71,18 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [profileRes, certsRes] = await Promise.all([
-        getUserProfile(user.id),
-        getUserCertificates(user.id),
-      ]);
-      setProfile(profileRes.data as Profile);
-      setCerts((certsRes.data as Certificate[]) || []);
-      setLoading(false);
+      try {
+        const [profileRes, certsRes] = await Promise.all([
+          getUserProfile(user.id),
+          getUserCertificates(user.id),
+        ]);
+        setProfile(profileRes.data as Profile);
+        setCerts((certsRes.data as Certificate[]) || []);
+      } catch (err) {
+        console.error("StaffDashboard load error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [user.id]);
@@ -252,10 +257,15 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
 
         <div className="p-6">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="w-10 h-10 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-[#64748B] text-sm">Loading your dashboard...</p>
+            <div className="space-y-4 animate-pulse">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[1,2,3,4].map(i => <div key={i} className="bg-white rounded-xl border border-[#E2E8F0] p-4 h-20" />)}
+              </div>
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
+                <div className="h-6 bg-slate-100 rounded w-48 mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1,2,3].map(i => <div key={i} className="h-48 bg-slate-50 rounded-xl" />)}
+                </div>
               </div>
             </div>
           ) : (

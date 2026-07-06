@@ -340,13 +340,18 @@ export default function TaskManagerPanel({ user, userRole }: TaskManagerPanelPro
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
-    const [{ data: taskData }, { data: staffData }] = await Promise.all([
-      getStaffTasks(),
-      isAdmin ? getStaffList() : Promise.resolve({ data: [] as StaffMember[], error: null }),
-    ]);
-    setTasks(taskData);
-    if (isAdmin) setStaffList(staffData || []);
-    setLoading(false);
+    try {
+      const [{ data: taskData }, { data: staffData }] = await Promise.all([
+        getStaffTasks(),
+        isAdmin ? getStaffList() : Promise.resolve({ data: [] as StaffMember[], error: null }),
+      ]);
+      setTasks(taskData);
+      if (isAdmin) setStaffList(staffData || []);
+    } catch (err) {
+      console.error("TaskManagerPanel load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [isAdmin]);
 
   useEffect(() => {

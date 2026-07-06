@@ -21,11 +21,14 @@ export default function ClientInvoicePanel({ userId }: { userId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // Client can only fetch their own invoices due to RLS, but we can also filter just in case
-    // getInvoices returns all allowed by RLS.
-    const { data } = await getInvoices(); 
-    setInvoices((data as InvoiceWithItems[]) || []);
-    setLoading(false);
+    try {
+      const { data } = await getInvoices();
+      setInvoices((data as InvoiceWithItems[]) || []);
+    } catch (err) {
+      console.error("InvoicePanel load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -53,8 +56,14 @@ export default function ClientInvoicePanel({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-4 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl border border-[#E2E8F0] p-5 h-24" />)}
+        </div>
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+          <div className="h-10 bg-slate-100 rounded-xl w-64 mb-4" />
+          {[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-50 rounded mb-2" />)}
+        </div>
       </div>
     );
   }

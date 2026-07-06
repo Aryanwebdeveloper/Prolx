@@ -104,15 +104,24 @@ export default function AdminDashboard({ user }: { user: User }) {
 
   // Get user profile to determine role
   const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data } = await createClient().from("profiles").select("*").eq("id", user.id).single();
-      setProfile(data);
-      // Set default tab based on role
-      if (data?.role === "staff") setActive("my-account");
-      if (data?.role === "client") setActive("my-account");
+      setProfileLoading(true);
+      try {
+        const { data } = await createClient().from("profiles").select("*").eq("id", user.id).single();
+        setProfile(data);
+        // Set default tab based on role
+        if (data?.role === "staff") setActive("my-account");
+        if (data?.role === "client") setActive("my-account");
+        // admin stays on "overview" (already the default)
+      } catch (err) {
+        console.error("AdminDashboard profile error:", err);
+      } finally {
+        setProfileLoading(false);
+      }
     };
     fetchProfile();
   }, [user.id]);
@@ -261,6 +270,19 @@ export default function AdminDashboard({ user }: { user: User }) {
         </header>
 
         <div className="p-6">
+          {profileLoading ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1,2,3,4].map(i => <div key={i} className="bg-white rounded-2xl border border-[#E2E8F0] p-5 h-24" />)}
+              </div>
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 h-56" />
+                <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 h-56" />
+              </div>
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 h-48" />
+            </div>
+          ) : (
+            <>
           {active === "overview" && <OverviewPanel />}
           {active === "my-account" && <MyAccountPanel />}
 
@@ -287,6 +309,8 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "settings" && <SettingsPanel />}
           {active === "team-chat" && <TeamChatPanel user={user} userRole={role} />}
           {active === "tasks" && <TaskManagerPanel user={user} userRole={role} />}
+            </>
+          )}
         </div>
       </main>
     </div>

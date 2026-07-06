@@ -34,10 +34,14 @@ export default function ClientLetterPanel({ userId }: { userId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // getLetters uses RLS so it only returns the user's letters 
-    const { data } = await getLetters();
-    setLetters((data as CompanyLetterWithProfiles[]) || []);
-    setLoading(false);
+    try {
+      const { data } = await getLetters();
+      setLetters((data as CompanyLetterWithProfiles[]) || []);
+    } catch (err) {
+      console.error("LetterPanel load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -85,8 +89,13 @@ export default function ClientLetterPanel({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-4 animate-pulse">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+          <div className="h-8 bg-slate-100 rounded w-32 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1,2,3].map(i => <div key={i} className="h-40 bg-slate-50 rounded-2xl border border-[#E2E8F0]" />)}
+          </div>
+        </div>
       </div>
     );
   }

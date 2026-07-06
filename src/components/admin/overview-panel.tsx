@@ -19,22 +19,29 @@ export default function OverviewPanel() {
 
   useEffect(() => {
     async function loadData() {
-      const [statsData, analyticsData, live] = await Promise.all([
-        getGlobalStats(),
-        getOverviewAnalytics(),
-        getLiveVisitors(),
-      ]);
-      setStats(statsData);
-      setAnalytics(analyticsData);
-      setLiveData(live);
-      setLoading(false);
+      try {
+        const [statsData, analyticsData, live] = await Promise.all([
+          getGlobalStats(),
+          getOverviewAnalytics(),
+          getLiveVisitors(),
+        ]);
+        setStats(statsData);
+        setAnalytics(analyticsData);
+        setLiveData(live);
+      } catch (err) {
+        console.error("OverviewPanel load error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
 
     // Poll live visitors every 15 seconds
     const interval = setInterval(async () => {
-      const live = await getLiveVisitors();
-      setLiveData(live);
+      try {
+        const live = await getLiveVisitors();
+        setLiveData(live);
+      } catch { /* silent */ }
     }, 15000);
 
     return () => clearInterval(interval);

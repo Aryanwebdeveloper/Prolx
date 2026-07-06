@@ -282,13 +282,18 @@ export default function AttendancePanel({ userId }: { userId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [todayRes, historyRes] = await Promise.all([
-      getTodayAttendance(userId),
-      getMyAttendance(userId, { month }),
-    ]);
-    setTodayRecord(todayRes.data as AttendanceRecord | null);
-    setHistory((historyRes.data as AttendanceRecord[]) || []);
-    setLoading(false);
+    try {
+      const [todayRes, historyRes] = await Promise.all([
+        getTodayAttendance(userId),
+        getMyAttendance(userId, { month }),
+      ]);
+      setTodayRecord(todayRes.data as AttendanceRecord | null);
+      setHistory((historyRes.data as AttendanceRecord[]) || []);
+    } catch (err) {
+      console.error("AttendancePanel load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [userId, month]);
 
   useEffect(() => { load(); }, [load]);
@@ -388,8 +393,22 @@ export default function AttendancePanel({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-4 animate-pulse">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8">
+          <div className="h-12 bg-slate-100 rounded w-48 mx-auto mb-4" />
+          <div className="h-4 bg-slate-50 rounded w-32 mx-auto mb-6" />
+          <div className="flex gap-4 justify-center">
+            <div className="h-14 w-32 bg-slate-100 rounded-2xl" />
+            <div className="h-14 w-32 bg-slate-100 rounded-2xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1,2,3,4].map(i => <div key={i} className="h-20 bg-white rounded-2xl border border-[#E2E8F0]" />)}
+        </div>
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+          <div className="h-6 bg-slate-100 rounded w-40 mb-4" />
+          {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 rounded mb-2" />)}
+        </div>
       </div>
     );
   }
