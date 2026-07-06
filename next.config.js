@@ -46,7 +46,7 @@ const nextConfig = {
         buildActivity: false,
         appIsrStatus: false,
     },
-    // NOTE: turbopack is dev-only — do NOT add it here as it breaks production --webpack builds
+    turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);
