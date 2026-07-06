@@ -20,6 +20,13 @@
 # production
 /build
 
+# PWA service worker (regenerated fresh on each build — never commit stale sw.js)
+/public/sw.js
+/public/workbox-*.js
+/public/fallback-*.js
+/public/worker-*.js
+
+
 # misc
 .DS_Store
 *.pem

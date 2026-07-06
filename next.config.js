@@ -7,16 +7,25 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
+    cleanupOutdatedCaches: true,
+    skipWaiting: true,
+    clientsClaim: true,
   },
 });
 
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-    allowedDevOrigins: process.env.NODE_ENV === "development" ? ['localhost', '127.0.0.1', 'prolx.cloud', '*.prolx.cloud'] : [],
+    // Only allow dev-mode origins when explicitly in development
+    allowedDevOrigins: process.env.NODE_ENV === "development"
+        ? ['localhost', '127.0.0.1', 'prolx.cloud', '*.prolx.cloud']
+        : [],
+
     compiler: {
+        // Strip console.* calls in production to avoid leaking data
         removeConsole: process.env.NODE_ENV === "production",
     },
+
     images: {
         remotePatterns: [
             {
@@ -37,15 +46,19 @@ const nextConfig = {
             }
         ],
     },
+
     experimental: {
         serverActions: {
             bodySizeLimit: '10mb',
         },
     },
+
     devIndicators: {
         buildActivity: false,
         appIsrStatus: false,
     },
+
+    // Required for proper Turbopack/Webpack coexistence (silence warning in dev)
     turbopack: {},
 };
 
