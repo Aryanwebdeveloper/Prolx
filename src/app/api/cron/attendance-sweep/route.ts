@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sweepOfflineAttendance } from "@/app/attendance-actions";
+import { sweepOfflineAttendance, autoManageAbsencesInternal } from "@/app/attendance-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +13,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await sweepOfflineAttendance();
+    const sweepResult = await sweepOfflineAttendance();
+    const autoManageResult = await autoManageAbsencesInternal();
+
     return NextResponse.json({ 
       success: true, 
       message: "Attendance sweep completed successfully", 
-      result 
+      result: {
+        sweepResult,
+        autoManageResult
+      }
     });
   } catch (error: any) {
     console.error("Error in attendance sweep cron:", error);

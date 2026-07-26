@@ -16,6 +16,12 @@ export type LetterType =
   | "nda_agreement"
   | "relieving_letter"
   | "salary_certificate"
+  | "completion_letter"
+  | "job_confirmation_letter"
+  | "transfer_letter"
+  | "no_objection_certificate"
+  | "leave_approval_letter"
+  | "reference_letter"
   | "custom";
 
 export function getLetterTemplateFields(type: LetterType) {
@@ -145,6 +151,65 @@ export function getLetterTemplateFields(type: LetterType) {
       { key: "performance", label: "Performance Remarks", type: "select", options: ["Excellent", "Very Good", "Good", "Satisfactory"] },
       { key: "extra_notes", label: "Additional Remarks", type: "textarea" },
     ],
+    completion_letter: [
+      ...base,
+      { key: "position", label: "Internship / Job Role", type: "text", required: true },
+      { key: "department", label: "Department / Domain", type: "text" },
+      { key: "start_date", label: "Start Date", type: "date", required: true },
+      { key: "end_date", label: "Completion Date", type: "date", required: true },
+      { key: "duration", label: "Total Duration (e.g. 3 Months)", type: "text", required: true },
+      { key: "performance", label: "Performance Grade / Rating", type: "select", options: ["Outstanding / Excellent", "Very Good", "Good", "Satisfactory"] },
+      { key: "mentor_name", label: "Assigned Mentor / Supervisor", type: "text" },
+      { key: "projects_worked_on", label: "Key Projects / Tasks Completed", type: "textarea" },
+      { key: "extra_notes", label: "Additional Remarks / Recommendations", type: "textarea" },
+    ],
+    job_confirmation_letter: [
+      ...base,
+      { key: "position", label: "Position / Designation", type: "text", required: true },
+      { key: "department", label: "Department", type: "text" },
+      { key: "joining_date", label: "Original Joining Date", type: "date", required: true },
+      { key: "confirmation_date", label: "Confirmation Effective Date", type: "date", required: true },
+      { key: "salary", label: "Confirmed Monthly Salary (PKR)", type: "text", required: true },
+      { key: "extra_notes", label: "Additional Notes", type: "textarea" },
+    ],
+    transfer_letter: [
+      ...base,
+      { key: "position", label: "Current Position", type: "text", required: true },
+      { key: "department", label: "Current Department", type: "text" },
+      { key: "new_department", label: "New Department / Location", type: "text", required: true },
+      { key: "transfer_date", label: "Transfer Effective Date", type: "date", required: true },
+      { key: "reason", label: "Reason for Transfer", type: "textarea" },
+      { key: "extra_notes", label: "Additional Notes", type: "textarea" },
+    ],
+    no_objection_certificate: [
+      ...base,
+      { key: "position", label: "Position / Designation", type: "text", required: true },
+      { key: "department", label: "Department", type: "text" },
+      { key: "joining_date", label: "Date of Joining", type: "date", required: true },
+      { key: "purpose", label: "Purpose of NOC", type: "textarea", required: true },
+      { key: "valid_until", label: "NOC Valid Until", type: "date" },
+      { key: "extra_notes", label: "Additional Notes", type: "textarea" },
+    ],
+    leave_approval_letter: [
+      ...base,
+      { key: "position", label: "Position / Designation", type: "text", required: true },
+      { key: "department", label: "Department", type: "text" },
+      { key: "leave_type", label: "Leave Type", type: "select", options: ["Annual Leave", "Casual Leave", "Sick Leave", "Maternity Leave", "Paternity Leave", "Emergency Leave", "Unpaid Leave"] },
+      { key: "leave_from", label: "Leave From Date", type: "date", required: true },
+      { key: "leave_to", label: "Leave To Date", type: "date", required: true },
+      { key: "total_days", label: "Total Days", type: "number", required: true },
+      { key: "extra_notes", label: "Additional Notes", type: "textarea" },
+    ],
+    reference_letter: [
+      ...base,
+      { key: "position", label: "Position Held at Prolx", type: "text", required: true },
+      { key: "department", label: "Department", type: "text" },
+      { key: "joining_date", label: "Date of Joining", type: "date", required: true },
+      { key: "leaving_date", label: "Last Working Date", type: "date" },
+      { key: "performance", label: "Overall Performance", type: "select", options: ["Exceptional", "Excellent", "Very Good", "Good", "Satisfactory"] },
+      { key: "referee_name", label: "Reference Given By", type: "text" },
+      { key: "extra_notes", label: "Recommendation / Remarks", type: "textarea", required: true },
+    ],
     custom: [
       ...base,
       { key: "subject", label: "Letter Subject", type: "text", required: true },
@@ -168,6 +233,12 @@ export function getLetterTypeLabel(type: LetterType): string {
     nda_agreement: "NDA Agreement",
     relieving_letter: "Relieving Letter",
     salary_certificate: "Salary Certificate",
+    completion_letter: "Completion Certificate Letter",
+    job_confirmation_letter: "Job Confirmation Letter",
+    transfer_letter: "Transfer Letter",
+    no_objection_certificate: "No Objection Certificate (NOC)",
+    leave_approval_letter: "Leave Approval Letter",
+    reference_letter: "Reference Letter",
     custom: "Custom Letter",
   };
   return labels[type] || type;
@@ -243,7 +314,7 @@ export type CompanyLetterWithProfiles = CompanyLetter & {
 // ATTENDANCE TYPES
 // ============================================================
 
-export type AttendanceStatus = "present" | "absent" | "late" | "half_day";
+export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave";
 
 export type AttendanceRecord = {
   id: string;
@@ -320,5 +391,6 @@ export type AttendanceSummary = {
   absent: number;
   late: number;
   half_day: number;
+  on_leave: number;
   total: number;
 };

@@ -606,6 +606,103 @@ function buildLetterBody(
         `This certificate is issued on request of the employee for official purposes.\n\nYours sincerely,`
       );
 
+    case "completion_letter":
+      return (
+        salutation +
+        `This is to certify that ${recipientName} has successfully completed their internship/tenure as ${content.position || "_____"}${content.department ? ` in the ${content.department} Department` : ""} at Prolx Digital Agency.\n\n` +
+        `INTERNSHIP / TENURE DETAILS:\n` +
+        `• Start Date: ${content.start_date || "_____"}\n` +
+        `• Completion Date: ${content.end_date || "_____"}\n` +
+        `• Duration: ${content.duration || "_____"}\n` +
+        (content.mentor_name ? `• Supervisor / Mentor: ${content.mentor_name}\n` : "") +
+        `• Performance Rating: ${content.performance || "Outstanding / Excellent"}\n\n` +
+        (content.projects_worked_on ? `KEY PROJECTS & CONTRIBUTIONS:\n${content.projects_worked_on}\n\n` : "") +
+        `During this period, ${recipientName} exhibited high dedication, technical competency, and professional ethics. They actively participated in assigned project tasks, collaborated effectively with the team, and demonstrated continuous learning.\n\n` +
+        `This letter is issued as an official Internship / Course Completion Certificate and may be presented for academic, employment, or credential verification purposes.\n\n` +
+        (content.extra_notes ? `${content.extra_notes}\n\n` : "") +
+        `We express our appreciation for their contributions and wish ${recipientName} every success in their future career endeavors.\n\nYours sincerely,`
+      );
+
+    case "job_confirmation_letter":
+      return (
+        salutation +
+        `We are pleased to confirm your appointment as a permanent employee at Prolx Digital Agency.\n\n` +
+        `Position: ${content.position || "_____"}\n` +
+        (content.department ? `Department: ${content.department}\n` : "") +
+        `Original Joining Date: ${content.joining_date || "_____"}\n` +
+        `Confirmation Effective Date: ${content.confirmation_date || "_____"}\n` +
+        `Confirmed Monthly Salary: PKR ${content.salary || "_____"}\n\n` +
+        `Having successfully completed your probation period, your performance has been evaluated and found satisfactory. You are now confirmed as a permanent member of our team.\n\n` +
+        `TERMS & CONDITIONS:\n\n` +
+        `1. All terms and conditions as stated in your original offer letter remain in effect.
+2. Your benefits, leave entitlements, and other employment privileges are now fully applicable.
+3. Your performance will continue to be reviewed on a bi-annual basis.
+4. All confidentiality, intellectual property, and non-compete clauses continue to apply.\n\n` +
+        (content.extra_notes ? `${content.extra_notes}\n\n` : "") +
+        `Congratulations on your permanent confirmation. We look forward to your continued contributions.\n\nYours sincerely,`
+      );
+
+    case "transfer_letter":
+      return (
+        salutation +
+        `This letter is to inform you that, based on business requirements and operational needs, you are being transferred effective ${content.transfer_date || "_____"}.\n\n` +
+        `Current Position: ${content.position || "_____"}\n` +
+        (content.department ? `Current Department: ${content.department}\n` : "") +
+        `New Department / Location: ${content.new_department || "_____"}\n\n` +
+        (content.reason ? `Reason for Transfer: ${content.reason}\n\n` : "") +
+        `TERMS & CONDITIONS:\n\n` +
+        `1. Your designation, salary, and seniority will remain unchanged unless specifically mentioned.
+2. You are expected to report to the new location/department on or before the effective transfer date.
+3. Please complete all handover responsibilities to your replacement in the current department before the transfer date.
+4. All existing employment terms, including confidentiality and non-compete obligations, continue to apply.\n\n` +
+        (content.extra_notes ? `${content.extra_notes}\n\n` : "") +
+        `We trust that you will continue to perform with the same commitment and professionalism in your new role.\n\nYours sincerely,`
+      );
+
+    case "no_objection_certificate":
+      return (
+        salutation +
+        `This is to certify that ${recipientName} is currently employed at Prolx Digital Agency as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""}, having joined on ${content.joining_date || "_____"}.\n\n` +
+        `Purpose: ${content.purpose || "_____"}\n\n` +
+        (content.valid_until ? `This NOC is valid until: ${content.valid_until}\n\n` : "") +
+        `Prolx Digital Agency has no objection to the above-stated purpose. This certificate is issued at the request of the employee purely for official and documentary purposes.\n\n` +
+        `This NOC does not release the employee from their employment obligations or any contractual commitments with Prolx Digital Agency.\n\n` +
+        (content.extra_notes ? `${content.extra_notes}\n\n` : "") +
+        `This document is digitally generated and verified by Prolx Digital Agency.\n\nYours sincerely,`
+      );
+
+    case "leave_approval_letter":
+      return (
+        salutation +
+        `We are pleased to inform you that your leave request has been reviewed and approved as per the details below:\n\n` +
+        `Employee: ${recipientName}\n` +
+        `Position: ${content.position || "_____"}\n` +
+        (content.department ? `Department: ${content.department}\n` : "") +
+        `Leave Type: ${content.leave_type || "Annual Leave"}\n` +
+        `Leave From: ${content.leave_from || "_____"}\n` +
+        `Leave To: ${content.leave_to || "_____"}\n` +
+        `Total Days: ${content.total_days || "_____"} day(s)\n\n` +
+        `IMPORTANT NOTES:\n\n` +
+        `1. You are expected to ensure all pending work is handed over or completed before your leave begins.
+2. Please ensure you are reachable for urgent matters during your leave period.
+3. You must resume duties on the first working day following the approved leave period.
+4. Failure to return without prior written communication will be treated as unauthorized absence.\n\n` +
+        (content.extra_notes ? `${content.extra_notes}\n\n` : "") +
+        `We wish you a restful and productive time off.\n\nYours sincerely,`
+      );
+
+    case "reference_letter":
+      return (
+        salutation +
+        `It is with great pleasure that I provide this reference letter for ${recipientName}, who served as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.\n\n` +
+        `Date of Joining: ${content.joining_date || "_____"}\n` +
+        (content.leaving_date ? `Last Working Date: ${content.leaving_date}\n` : "") +
+        `Overall Performance: ${content.performance || "Excellent"}\n\n` +
+        `${content.extra_notes || `During their tenure at Prolx Digital Agency, ${recipientName} consistently demonstrated exceptional professional competence, strong work ethic, and a collaborative spirit. They were a reliable and valued member of our team, contributing meaningfully to the organization's goals and projects.`}\n\n` +
+        (content.referee_name ? `This reference is provided by ${content.referee_name} on behalf of Prolx Digital Agency.\n\n` : "") +
+        `I wholeheartedly recommend ${recipientName} for any future employment, academic program, or professional opportunity. Please do not hesitate to contact us for further information.\n\nYours sincerely,`
+      );
+
     case "custom":
     default:
       return salutation + (content.body || "") + "\n\nYours sincerely,";

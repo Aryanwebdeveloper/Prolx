@@ -18,13 +18,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
 
-type AttendanceStatus = "present" | "absent" | "late" | "half_day";
+type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave";
 
 const STATUS_CONFIG = {
   present: { label: "Present", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
   absent: { label: "Absent", color: "bg-red-100 text-red-700", icon: UserX },
   late: { label: "Late", color: "bg-orange-100 text-orange-700", icon: AlertCircle },
   half_day: { label: "Half Day", color: "bg-yellow-100 text-yellow-700", icon: Clock },
+  on_leave: { label: "On Leave", color: "bg-purple-100 text-purple-700", icon: Calendar },
 } as const;
 
 const LOCATION_ICONS: Record<string, any> = { Home, Office: Building2, Outside: Globe, Offline: WifiOff };
@@ -247,14 +248,15 @@ function EditAttendanceModal({
 }
 
 // ─── Today Overview Card ────────────────────────────────────────
-function TodayStats({ stats }: { stats: { present: number; late: number; absent: number; total: number } }) {
+function TodayStats({ stats }: { stats: { present: number; late: number; absent: number; onLeave: number; total: number } }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       {[
         { label: "Total Staff", value: stats.total, color: "bg-[#0F172A]", icon: UserCheck },
-        { label: "Present Today", value: stats.present, color: "bg-emerald-500", icon: CheckCircle },
-        { label: "Late Today", value: stats.late, color: "bg-orange-500", icon: AlertCircle },
-        { label: "Absent Today", value: stats.absent, color: "bg-red-500", icon: UserX },
+        { label: "Present", value: stats.present, color: "bg-emerald-500", icon: CheckCircle },
+        { label: "Late", value: stats.late, color: "bg-orange-500", icon: AlertCircle },
+        { label: "On Leave", value: stats.onLeave || 0, color: "bg-purple-500", icon: Calendar },
+        { label: "Absent", value: stats.absent, color: "bg-red-500", icon: UserX },
       ].map(({ label, value, color, icon: Icon }) => (
         <div key={label} className="bg-white rounded-2xl border border-[#E2E8F0] p-5 flex items-center gap-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -274,7 +276,7 @@ function TodayStats({ stats }: { stats: { present: number; late: number; absent:
 export default function AttendanceManagerPanel() {
   const [records, setRecords] = useState<AttendanceWithUser[]>([]);
   const [staffList, setStaffList] = useState<{ id: string; full_name: string; email: string; role: string }[]>([]);
-  const [todayStats, setTodayStats] = useState({ present: 0, late: 0, absent: 0, total: 0 });
+  const [todayStats, setTodayStats] = useState({ present: 0, late: 0, absent: 0, onLeave: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -337,12 +339,12 @@ export default function AttendanceManagerPanel() {
   const handleRunAutoAbsence = async () => {
     if (!confirm("Run auto-manage absences? This will mark any missing records for past staff working days as 'Absent' (ignoring weekends and holidays).")) return;
     setLoading(true);
-    const { count, error } = await autoManageAbsences();
+    const res = await autoManageAbsences();
     setLoading(false);
-    if (error) {
-       alert("Error managing absences: " + error.message);
-    } else {
-       alert(`Auto-manage complete. ${count || 0} missing days marked as absent.`);
+    if ("error" in res && res.error) {
+       alert("Error managing absences: " + res.error.message);
+    } else if ("count" in res) {
+       alert(`Auto-manage complete. ${res.count || 0} missing days marked as absent.`);
        load();
     }
   };
@@ -363,11 +365,12 @@ export default function AttendanceManagerPanel() {
     }
   };
 
-  const summary = {
+  const summary: Record<AttendanceStatus, number> = {
     present: filtered.filter(r => r.status === "present").length,
     late: filtered.filter(r => r.status === "late").length,
     absent: filtered.filter(r => r.status === "absent").length,
     half_day: filtered.filter(r => r.status === "half_day").length,
+    on_leave: filtered.filter(r => r.status === "on_leave").length,
   };
 
   return (

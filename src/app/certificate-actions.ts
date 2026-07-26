@@ -28,7 +28,7 @@ export async function getUserProfile(userId: string) {
 }
 
 export async function getAllProfiles() {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -46,8 +46,8 @@ export async function updateProfileStatus(userId: string, status: "active" | "re
   return { error };
 }
 
-export async function updateProfileRole(userId: string, role: "admin" | "staff" | "client") {
-  const supabase = await createClient();
+export async function updateProfileRole(userId: string, role: string) {
+  const supabase = getAdminClient();
   const { error } = await supabase
     .from("profiles")
     .update({ role })

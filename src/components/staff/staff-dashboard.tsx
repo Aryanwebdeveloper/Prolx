@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog, Eye, FileDown, Share2, MessageSquare, CheckSquare, Bell } from "lucide-react";
+import { Award, User, Clock, LogOut, ExternalLink, Copy, Check, Menu, X, Lock, UserCog, Eye, FileDown, Share2, MessageSquare, CheckSquare, Bell, Calendar, FileText } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "../../../supabase/client";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,9 @@ import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
 import TeamChatPanel from "@/components/admin/team-chat-panel";
 import TaskManagerPanel from "@/components/admin/task-manager-panel";
 import AnnouncementsPanel from "@/components/staff/announcements-panel";
+import StaffHRPanel from "@/components/staff/staff-hr-panel";
+import StaffLettersPanel from "@/components/staff/staff-letters-panel";
+import CalendarPanel from "@/components/admin/calendar-panel";
 import { generateCertificatePDF } from "@/lib/certificate-generator";
 import { saveAs } from "file-saver";
 import { getUnreadMessagesCount } from "@/app/communication-actions";
@@ -164,6 +167,9 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
     { icon: Bell, label: "Updates", id: "updates" },
     { icon: MessageSquare, label: "Team Chat", id: "team-chat" },
     { icon: CheckSquare, label: "My Tasks", id: "tasks" },
+    { icon: Calendar, label: "Company Calendar", id: "calendar" },
+    { icon: Calendar, label: "HR Portal", id: "hr-portal" },
+    { icon: FileText, label: "My Letters", id: "my-letters" },
     { icon: Award, label: "My Certificates", id: "certificates" },
     { icon: UserCog, label: "My Team Settings", id: "team-settings" },
     { icon: User, label: "My Profile", id: "profile" },
@@ -284,6 +290,18 @@ export default function StaffDashboard({ user }: { user: SupabaseUser }) {
 
               {active === "tasks" && (
                 <TaskManagerPanel user={user} userRole="staff" />
+              )}
+
+              {active === "calendar" && (
+                <CalendarPanel userRole={profile?.role || "staff"} />
+              )}
+
+              {active === "hr-portal" && (
+                <StaffHRPanel userId={user.id} />
+              )}
+
+              {active === "my-letters" && (
+                <StaffLettersPanel userId={user.id} />
               )}
 
               {active === "team-settings" && (

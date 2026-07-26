@@ -55,7 +55,7 @@ export default function UsersManagerPanel() {
     setActionLoading(null);
   };
 
-  const handleRole = async (id: string, role: "admin" | "staff" | "client") => {
+  const handleRole = async (id: string, role: string) => {
     setActionLoading(id + role);
     await updateProfileRole(id, role);
     setEditingRole(null);
@@ -201,14 +201,20 @@ export default function UsersManagerPanel() {
                       {editingRole === profile.id ? (
                         <select
                           defaultValue={profile.role}
-                          onChange={e => handleRole(profile.id, e.target.value as "admin" | "staff" | "client")}
+                          onChange={e => handleRole(profile.id, e.target.value)}
                           onBlur={() => setEditingRole(null)}
                           className="text-xs border border-[#E2E8F0] rounded-lg px-2 py-1 focus:outline-none focus:border-[#0D9488]"
                           autoFocus
                         >
-                          <option value="client">Client</option>
-                          <option value="staff">Staff</option>
                           <option value="admin">Admin</option>
+                          <option value="hr_manager">HR Manager</option>
+                          <option value="project_manager">Project Manager</option>
+                          <option value="team_lead">Team Lead</option>
+                          <option value="finance_manager">Finance Manager</option>
+                          <option value="recruiter">Recruiter</option>
+                          <option value="staff">Staff</option>
+                          <option value="intern">Intern</option>
+                          <option value="client">Client</option>
                         </select>
                       ) : (
                         <button

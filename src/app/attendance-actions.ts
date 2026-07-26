@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "../../supabase/server";
+import { createAdminClient } from "../../supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { StaffAnnouncement, StaffLocation } from "@/types/erp";
 
@@ -380,11 +381,113 @@ export async function sweepOfflineAttendance() {
 }
 
 
+export async function autoManageAbsencesInternal() {
+  const supabase = createAdminClient();
+  
+  const settings = await getAttendanceSettings();
+  const holidays = new Set(settings.holidays || []);
+
+  const { data: staffList } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("role", "staff")
+    .eq("status", "active");
+
+  if (!staffList || staffList.length === 0) return { error: null, count: 0 };
+
+  const today = new Date();
+  const datesToCheck: string[] = [];
+  
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    if (holidays.has(dateStr)) continue;
+    
+    datesToCheck.push(dateStr);
+  }
+  
+  if (datesToCheck.length === 0) return { error: null, count: 0 };
+
+  const minDate = datesToCheck[datesToCheck.length - 1];
+  const maxDate = datesToCheck[0];
+
+  const { data: leaves } = await supabase
+    .from("leave_requests")
+    .select("user_id, start_date, end_date")
+    .eq("status", "approved")
+    .or(`and(start_date.lte.${maxDate},end_date.gte.${minDate})`);
+
+  const approvedLeavesMap = new Set<string>();
+  if (leaves) {
+    for (const leave of leaves) {
+      const start = new Date(leave.start_date);
+      const end = new Date(leave.end_date);
+      for (const dateStr of datesToCheck) {
+        const currentDate = new Date(dateStr);
+        if (currentDate >= start && currentDate <= end) {
+          approvedLeavesMap.add(`${leave.user_id}_${dateStr}`);
+        }
+      }
+    }
+  }
+
+  const { data: existingAttendance } = await supabase
+    .from("attendance")
+    .select("id, user_id, date, status")
+    .in("date", datesToCheck);
+
+  const existingMap = new Map<string, { id: string; status: string }>(
+    existingAttendance?.map(r => [`${r.user_id}_${r.date}`, { id: r.id, status: r.status }]) || []
+  );
+
+  const recordsToUpsert: any[] = [];
+  
+  for (const date of datesToCheck) {
+    for (const staff of staffList) {
+      const key = `${staff.id}_${date}`;
+      const isOnLeave = approvedLeavesMap.has(key);
+      const existing = existingMap.get(key);
+
+      if (!existing) {
+        recordsToUpsert.push({
+          user_id: staff.id,
+          date,
+          status: isOnLeave ? "on_leave" : "absent",
+          task_description: isOnLeave ? "Approved Leave" : "Auto-managed absent",
+          notes: isOnLeave ? "Auto-managed: Approved Leave" : "Auto-managed absent",
+          created_by: null,
+        });
+      } else if (existing.status === "absent" && isOnLeave) {
+        recordsToUpsert.push({
+          id: existing.id,
+          user_id: staff.id,
+          date,
+          status: "on_leave",
+          task_description: "Approved Leave (Retroactive)",
+          notes: "Auto-managed: Retroactive Approved Leave",
+        });
+      }
+    }
+  }
+
+  if (recordsToUpsert.length > 0) {
+    const { error } = await supabase
+      .from("attendance")
+      .upsert(recordsToUpsert, { onConflict: "user_id,date" });
+    
+    if (error) return { error };
+  }
+
+  return { error: null, count: recordsToUpsert.length };
+}
+
 export async function autoManageAbsences() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Verify admin
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -395,73 +498,9 @@ export async function autoManageAbsences() {
     return { error: new Error("Unauthorized") };
   }
 
-  const settings = await getAttendanceSettings();
-  const holidays = new Set(settings.holidays);
-
-  // Get all staff
-  const { data: staffList } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("role", "staff")
-    .eq("status", "active");
-
-  if (!staffList || staffList.length === 0) return { error: null };
-
-  // Calculate past working days (let's say we check the last 7 days)
-  const today = new Date();
-  const datesToCheck: string[] = [];
-  
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
-    
-    // Skip weekends (0 is Sunday, 6 is Saturday)
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-    
-    // Skip holidays
-    if (holidays.has(dateStr)) continue;
-    
-    datesToCheck.push(dateStr);
-  }
-
-  // Get existing attendance for these days
-  const { data: existingAttendance } = await supabase
-    .from("attendance")
-    .select("user_id, date")
-    .in("date", datesToCheck);
-
-  const existingMap = new Set(
-    existingAttendance?.map(r => `${r.user_id}_${r.date}`) || []
-  );
-
-  const missingRecords: any[] = [];
-  
-  // Find missing records and insert as absent
-  for (const date of datesToCheck) {
-    for (const staff of staffList) {
-      if (!existingMap.has(`${staff.id}_${date}`)) {
-        missingRecords.push({
-          user_id: staff.id,
-          date,
-          status: "absent",
-          created_by: user?.id,
-          task_description: "Auto-managed absent",
-        });
-      }
-    }
-  }
-
-  if (missingRecords.length > 0) {
-    const { error } = await supabase
-      .from("attendance")
-      .upsert(missingRecords, { onConflict: "user_id,date" });
-    
-    if (error) return { error };
-  }
-
+  const result = await autoManageAbsencesInternal();
   revalidatePath("/dashboard");
-  return { error: null, count: missingRecords.length };
+  return result;
 }
 
 export async function getMyAttendance(
@@ -522,7 +561,7 @@ export async function upsertAttendance(payload: {
   date: string;
   check_in?: string;
   check_out?: string;
-  status: "present" | "absent" | "late" | "half_day";
+  status: "present" | "absent" | "late" | "half_day" | "on_leave";
   notes?: string;
   task_description?: string;
   completed_tasks?: string;
@@ -576,6 +615,7 @@ export async function getAttendanceSummary(filter?: {
     absent: 0,
     late: 0,
     half_day: 0,
+    on_leave: 0,
     total: data?.length || 0,
   };
 
@@ -614,11 +654,13 @@ export async function getTodayAllAttendance() {
 
   const present = result.filter((s) => s.attendance?.status === "present").length;
   const late = result.filter((s) => s.attendance?.status === "late").length;
+  const onLeave = result.filter((s) => s.attendance?.status === "on_leave").length;
+  // if no attendance record, or status is absent, count as absent
   const absent = result.filter((s) => !s.attendance || s.attendance.status === "absent").length;
 
   return {
     data: result,
-    stats: { present, late, absent, total: staffList?.length || 0 },
+    stats: { present, late, absent, onLeave, total: staffList?.length || 0 },
     error: null,
   };
 }

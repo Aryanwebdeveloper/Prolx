@@ -13,7 +13,10 @@ import {
   Calendar,
   Clock,
   ChevronLeft,
+  Sparkles,
 } from "lucide-react";
+import ScrollReveal from "@/components/scroll-reveal";
+import PageHero from "@/components/page-hero";
 
 const consultationTypes = [
   {
@@ -116,11 +119,11 @@ export function ConsultationClient() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#F8FAFC]">
         <ProlxNavbar />
-        <section className="pt-28 pb-20">
+        <section className="pt-32 pb-20">
           <div className="container mx-auto px-4 max-w-lg text-center">
-            <div className="w-20 h-20 rounded-full bg-[#0D9488] flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0D9488] to-[#0891B2] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-teal-200">
               <CheckCircle2 size={40} className="text-white" />
             </div>
             <h1
@@ -158,55 +161,36 @@ export function ConsultationClient() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <ProlxNavbar />
 
-      {/* Hero */}
-      <section className="pt-28 pb-12 bg-[#F0FDFA]">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2 text-sm text-[#64748B] mb-4">
-            <Link href="/" className="hover:text-[#0D9488]">
-              Home
-            </Link>
-            <ChevronRight size={14} />
-            <span className="text-[#0D9488]">Book Consultation</span>
-          </div>
-          <h1
-            className="text-5xl md:text-6xl font-extrabold text-[#0F172A] mb-4"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Book a Free{" "}
-            <em
-              style={{
-                fontFamily: "'Fraunces', serif",
-                fontStyle: "italic",
-                color: "#0D9488",
-              }}
-            >
-              Consultation
-            </em>
-          </h1>
-          <p className="text-[#64748B] text-lg max-w-xl">
-            Schedule a call with our team to discuss your project. No
-            commitments — just a conversation about your goals.
-          </p>
-
-          {error && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600 max-w-xl animate-in fade-in slide-in-from-top-2">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-xs font-bold">
-                !
-              </div>
-              <div>
-                <p className="text-sm font-bold">Booking Error</p>
-                <p className="text-xs opacity-80">{error}</p>
-              </div>
+      <PageHero
+        breadcrumb="Book Consultation"
+        badge="100% Free — No Commitment"
+        badgeIcon={<Sparkles size={13} />}
+        title={
+          <>
+            Book a{" "}
+            <span className="bg-gradient-to-r from-[#0D9488] to-[#0891B2] bg-clip-text text-transparent">
+              Free Consultation
+            </span>
+          </>
+        }
+        subtitle="Schedule a call with our team to discuss your project. No commitments — just a conversation about your goals."
+      >
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600 max-w-xl">
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-xs font-bold">!</div>
+            <div>
+              <p className="text-sm font-bold">Booking Error</p>
+              <p className="text-xs opacity-80">{error}</p>
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        )}
+      </PageHero>
 
       {/* Steps */}
-      <section className="py-12">
+      <section className="py-14">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Progress */}
           <div className="flex items-center justify-center gap-2 mb-10">

@@ -1,5 +1,6 @@
 import ProlxNavbar from "@/components/prolx-navbar";
 import ProlxFooter from "@/components/prolx-footer";
+import ReadingProgressBar from "@/components/blog/progress-bar";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, ChevronLeft, Calendar, User } from "lucide-react";
@@ -32,6 +33,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="min-h-screen bg-white">
+      <ReadingProgressBar />
       <ProlxNavbar />
       <main className="pt-32 pb-20">
         <article className="container mx-auto px-4 max-w-4xl">

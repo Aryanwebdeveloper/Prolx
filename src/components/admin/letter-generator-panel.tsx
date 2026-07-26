@@ -19,14 +19,20 @@ const LETTER_TYPES: { type: LetterType; label: string; icon: React.ElementType; 
   { type: "offer_letter", label: "Offer Letter", icon: Briefcase, color: "bg-blue-100 text-blue-700" },
   { type: "internship_letter", label: "Internship Letter", icon: GraduationCap, color: "bg-cyan-100 text-cyan-700" },
   { type: "paid_internship_letter", label: "Paid Internship", icon: Banknote, color: "bg-teal-100 text-teal-700" },
+  { type: "completion_letter", label: "Completion Letter", icon: FileCheck, color: "bg-lime-100 text-lime-700" },
   { type: "appointment_letter", label: "Appointment Letter", icon: FileCheck, color: "bg-emerald-100 text-emerald-700" },
+  { type: "job_confirmation_letter", label: "Job Confirmation", icon: Award, color: "bg-green-100 text-green-700" },
   { type: "experience_letter", label: "Experience Letter", icon: Award, color: "bg-purple-100 text-purple-700" },
   { type: "promotion_letter", label: "Promotion Letter", icon: TrendingUp, color: "bg-indigo-100 text-indigo-700" },
+  { type: "transfer_letter", label: "Transfer Letter", icon: ChevronRight, color: "bg-sky-100 text-sky-700" },
+  { type: "relieving_letter", label: "Relieving Letter", icon: LogOut, color: "bg-rose-100 text-rose-700" },
   { type: "warning_letter", label: "Warning Letter", icon: AlertTriangle, color: "bg-amber-100 text-amber-700" },
   { type: "termination_letter", label: "Termination Letter", icon: UserX, color: "bg-red-100 text-red-700" },
-  { type: "nda_agreement", label: "NDA Agreement", icon: ShieldCheck, color: "bg-slate-100 text-slate-700" },
-  { type: "relieving_letter", label: "Relieving Letter", icon: LogOut, color: "bg-rose-100 text-rose-700" },
-  { type: "salary_certificate", label: "Salary Certificate", icon: FileSignature, color: "bg-orange-100 text-orange-700" },
+  { type: "leave_approval_letter", label: "Leave Approval", icon: Mail, color: "bg-orange-100 text-orange-700" },
+  { type: "no_objection_certificate", label: "NOC", icon: ShieldCheck, color: "bg-slate-100 text-slate-700" },
+  { type: "reference_letter", label: "Reference Letter", icon: BookOpen, color: "bg-violet-100 text-violet-700" },
+  { type: "nda_agreement", label: "NDA Agreement", icon: ShieldCheck, color: "bg-gray-100 text-gray-700" },
+  { type: "salary_certificate", label: "Salary Certificate", icon: FileSignature, color: "bg-yellow-100 text-yellow-700" },
   { type: "custom", label: "Custom Letter", icon: BookOpen, color: "bg-gray-100 text-gray-600" },
 ];
 
@@ -375,11 +381,11 @@ export default function LetterGeneratorPanel() {
 
   const stats = {
     total: letters.length,
-    offers: letters.filter(l => ["offer_letter", "internship_letter", "paid_internship_letter"].includes(l.letter_type)).length,
-    appointment: letters.filter(l => l.letter_type === "appointment_letter").length,
-    experience: letters.filter(l => ["experience_letter", "relieving_letter"].includes(l.letter_type)).length,
-    compliance: letters.filter(l => ["warning_letter", "termination_letter", "nda_agreement"].includes(l.letter_type)).length,
-    others: letters.filter(l => ["salary_certificate", "promotion_letter", "custom"].includes(l.letter_type)).length,
+    offers: letters.filter(l => ["offer_letter", "internship_letter", "paid_internship_letter", "completion_letter"].includes(l.letter_type)).length,
+    appointment: letters.filter(l => ["appointment_letter", "job_confirmation_letter"].includes(l.letter_type)).length,
+    experience: letters.filter(l => ["experience_letter", "relieving_letter", "transfer_letter", "reference_letter"].includes(l.letter_type)).length,
+    compliance: letters.filter(l => ["warning_letter", "termination_letter", "nda_agreement", "no_objection_certificate"].includes(l.letter_type)).length,
+    others: letters.filter(l => ["salary_certificate", "promotion_letter", "leave_approval_letter", "custom"].includes(l.letter_type)).length,
   };
 
   return (

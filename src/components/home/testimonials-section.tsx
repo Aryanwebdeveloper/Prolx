@@ -1,5 +1,6 @@
 import { getTestimonials } from "@/app/testimonials-actions";
 import TestimonialsCarousel from "./testimonials-carousel";
+import ScrollReveal from "@/components/scroll-reveal";
 
 const fallbackTestimonials = [
   {
@@ -40,14 +41,22 @@ export default async function TestimonialsSection() {
       : fallbackTestimonials;
 
   return (
-    <section className="py-20 bg-[#F0FDFA]">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-[#CCFBF1] text-[#0D9488] text-sm font-semibold px-4 py-1.5 rounded-full mb-4 font-mono">
+    <section className="py-24 bg-[#F0FDFA] relative overflow-hidden">
+      {/* Decorative top border */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#0D9488]/40 to-transparent" />
+
+      {/* Background orbs */}
+      <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-[#0D9488]/8 blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-[#0891B2]/6 blur-[80px] pointer-events-none" />
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Header */}
+        <ScrollReveal direction="up" className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 bg-[#CCFBF1] text-[#0D9488] text-sm font-semibold px-4 py-2 rounded-full mb-5 font-mono">
             Client Stories
           </div>
           <h2
-            className="text-3xl md:text-4xl font-bold text-[#0F172A] tracking-tight"
+            className="text-4xl md:text-5xl font-bold text-[#0F172A] tracking-tight"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
           >
             What Our{" "}
@@ -57,10 +66,10 @@ export default async function TestimonialsSection() {
               Clients Say
             </em>
           </h2>
-          <p className="text-[#64748B] text-base mt-3 max-w-md mx-auto">
+          <p className="text-[#64748B] text-lg mt-4 max-w-md mx-auto">
             Real feedback from real clients we&apos;ve worked with.
           </p>
-        </div>
+        </ScrollReveal>
 
         <TestimonialsCarousel testimonials={displayTestimonials} />
       </div>

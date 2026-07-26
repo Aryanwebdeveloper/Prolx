@@ -16,7 +16,9 @@ export type StorageBucket =
   | "blog-images" 
   | "portfolio-images" 
   | "testimonials" 
-  | "team-members";
+  | "team-members"
+  | "leave-attachments"
+  | "application-attachments";
 
 /**
  * Uploads an image to Cloudinary.

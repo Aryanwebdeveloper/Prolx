@@ -65,11 +65,16 @@ SET role = 'admin', status = 'active';`}
     return redirect("/sign-in?error=Account+rejected+by+admin");
   }
 
+  const erpRoles = [
+    "super_admin", "admin", "hr_manager", "project_manager", "team_lead",
+    "finance_manager", "recruiter", "content_manager", "marketing_manager"
+  ];
+
   // Route based on role
-  if (profile.role === "admin") {
-    return <AdminDashboard user={user} />;
+  if (erpRoles.includes(profile.role)) {
+    return <AdminDashboard user={user} initialRole={profile.role} />;
   }
-  if (profile.role === "staff") {
+  if (profile.role === "staff" || profile.role === "intern") {
     return <StaffDashboard user={user} />;
   }
 

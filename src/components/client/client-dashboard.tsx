@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, User, LogOut, ExternalLink, Copy, Check, Menu, X, Receipt, FileSignature, Lock } from "lucide-react";
+import { Award, User, LogOut, ExternalLink, Copy, Check, Menu, X, Receipt, FileSignature, Lock, LayoutGrid } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "../../../supabase/client";
 import { useRouter } from "next/navigation";
@@ -113,6 +113,7 @@ export default function ClientDashboard({ user }: { user: SupabaseUser }) {
   };
 
   const navItems = [
+    { icon: LayoutGrid, label: "Overview", id: "overview" },
     { icon: Receipt, label: "My Invoices", id: "invoices" },
     { icon: FileSignature, label: "My Documents", id: "documents" },
     { icon: Award, label: "My Certificates", id: "certificates" },
@@ -210,6 +211,45 @@ export default function ClientDashboard({ user }: { user: SupabaseUser }) {
             </div>
           ) : (
             <>
+              {active === "overview" && (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Client Account</div>
+                      <div className="mt-3 text-2xl font-bold text-[#0F172A]">{profile?.full_name || "Welcome"}</div>
+                      <div className="mt-2 text-sm text-[#64748B]">Access invoices, documents, and certificates from one place.</div>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Certificates</div>
+                      <div className="mt-3 text-2xl font-bold text-[#0D9488]">{certs.length}</div>
+                      <div className="mt-2 text-sm text-[#64748B]">Active credentials available for download or verification.</div>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Documents</div>
+                      <div className="mt-3 text-2xl font-bold text-[#0F172A]">Ready</div>
+                      <div className="mt-2 text-sm text-[#64748B]">Your letters and invoices are organized in the portal.</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
+                    <h2 className="font-bold text-[#0F172A] text-lg mb-4" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Quick Access</h2>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <button onClick={() => setActive("invoices")} className="rounded-xl border border-[#E2E8F0] p-4 text-left hover:border-[#0D9488] hover:bg-[#F0FDFA]">
+                        <div className="font-semibold text-[#0F172A]">Invoices</div>
+                        <div className="text-sm text-[#64748B]">Review payment status and download statements.</div>
+                      </button>
+                      <button onClick={() => setActive("documents")} className="rounded-xl border border-[#E2E8F0] p-4 text-left hover:border-[#0D9488] hover:bg-[#F0FDFA]">
+                        <div className="font-semibold text-[#0F172A]">Documents</div>
+                        <div className="text-sm text-[#64748B]">Browse letters and issued paperwork.</div>
+                      </button>
+                      <button onClick={() => setActive("certificates")} className="rounded-xl border border-[#E2E8F0] p-4 text-left hover:border-[#0D9488] hover:bg-[#F0FDFA]">
+                        <div className="font-semibold text-[#0F172A]">Certificates</div>
+                        <div className="text-sm text-[#64748B]">Open your credential records and share verification links.</div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {active === "invoices" && (
                 <ClientInvoicePanel userId={user.id} />
               )}

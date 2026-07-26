@@ -38,7 +38,20 @@ import MyAccountPanel from "@/components/admin/my-account-panel";
 import MyTeamProfilePanel from "@/components/admin/my-team-profile-panel";
 import TeamChatPanel from "@/components/admin/team-chat-panel";
 import TaskManagerPanel from "@/components/admin/task-manager-panel";
+import LeaveManagerPanel from "@/components/admin/leave-manager-panel";
+import EmployeeManagerPanel from "@/components/admin/employee-manager-panel";
+import InternalApplicationsPanel from "@/components/admin/internal-applications-panel";
+import AnalyticsPanel from "@/components/admin/analytics-panel";
+import CalendarPanel from "@/components/admin/calendar-panel";
+import AuditLogPanel from "@/components/admin/audit-log-panel";
+import CRMPanel from "@/components/admin/crm-panel";
+import PayrollPanel from "@/components/admin/payroll-panel";
+import PerformancePanel from "@/components/admin/performance-panel";
+import GlobalSearch from "@/components/ui/global-search";
+import NotificationBell from "@/components/ui/notification-bell";
 import { getUnreadMessagesCount } from "@/app/communication-actions";
+import AcademyAdminPanel from "@/components/admin/academy-panel";
+import { GraduationCap } from "lucide-react";
 
 const statsCards = [
   { label: "Total Visitors", value: "12,847", trend: "+18%", icon: Eye, color: "teal" },
@@ -53,8 +66,16 @@ const getNavItems = (role: string) => {
     { icon: UserIcon, label: "My Account", id: "my-account" },
   ];
 
-  // Staff & admin shared items
-  if (role === "staff" || role === "admin") {
+  // System roles definition
+  const isAdmin = role === "admin" || role === "super_admin";
+  const isHR = role === "hr_manager";
+  const isPM = role === "project_manager";
+  const isTL = role === "team_lead";
+  const isFinance = role === "finance_manager";
+  const isRecruiter = role === "recruiter";
+
+  // Team Collaboration elements for operational staff
+  if (isAdmin || isHR || isPM || isTL || isFinance || role === "staff") {
     baseItems.push(
       { icon: UserCog, label: "My Team Settings", id: "my-profile" },
       { icon: MessageSquare, label: "Team Chat", id: "team-chat" },
@@ -62,49 +83,82 @@ const getNavItems = (role: string) => {
     );
   }
 
-  // Admin-only items
-  if (role === "admin") {
+  // Admin and Super Admin get full control
+  if (isAdmin) {
     baseItems.push(
+      { icon: GraduationCap, label: "Prolx Academy", id: "academy" },
+      { icon: Users, label: "Employee Directory", id: "employees" },
+      { icon: Clock, label: "Leave Management", id: "leave-management" },
+      { icon: PlusCircle, label: "Internal Applications", id: "internal-applications" },
       { icon: Globe, label: "Services", id: "services" },
       { icon: Briefcase, label: "Portfolio", id: "portfolio" },
-      { icon: Users, label: "Team", id: "team" },
+      { icon: Users, label: "Team CMS", id: "team" },
       { icon: FileText, label: "Blog", id: "blog" },
       { icon: Star, label: "Testimonials", id: "testimonials" },
       { icon: DollarSign, label: "Pricing", id: "pricing" },
       { icon: Mail, label: "Contact Submissions", id: "contact" },
-      { icon: Calendar, label: "Consultation Bookings", id: "consultations" },
-      { icon: CareerIcon, label: "Careers", id: "careers" },
+      { icon: Calendar, label: "Consultations", id: "consultations" },
+      { icon: CareerIcon, label: "Careers CMS", id: "careers" },
       { icon: Users, label: "Job Applications", id: "applications" },
       { icon: FormInput, label: "Form Settings", id: "form-settings" },
-      { icon: Calendar, label: "Interview Management", id: "interviews" },
+      { icon: Calendar, label: "Interviews", id: "interviews" },
       { icon: Mail, label: "Email Logs", id: "email-logs" },
-      { icon: UserCog, label: "Users", id: "users" },
+      { icon: UserCog, label: "User Access", id: "users" },
       { icon: Award, label: "Certificates", id: "certificates" },
       { icon: Receipt, label: "Invoices", id: "invoices" },
       { icon: FileSignature, label: "Letters", id: "letters" },
       { icon: Clock, label: "Attendance", id: "attendance" },
       { icon: Bell, label: "Announcements", id: "announcements" },
+      { icon: BarChart3, label: "Analytics", id: "analytics" },
+      { icon: Calendar, label: "Company Calendar", id: "calendar" },
+      { icon: TrendingUp, label: "Client CRM", id: "crm" },
+      { icon: DollarSign, label: "Payroll", id: "payroll" },
+      { icon: TrendingUp, label: "Performance", id: "performance" },
+      { icon: Settings, label: "Audit Log", id: "audit-log" },
       { icon: Settings, label: "Settings", id: "settings" },
     );
-  } else if (role === "staff") {
-     // Staff specific additional items
-     baseItems.push(
-       { icon: Clock, label: "Attendance", id: "attendance" },
-       { icon: Bell, label: "Announcements", id: "announcements" },
-     );
+  }
+
+  // HR Manager View
+  if (isHR) {
+    baseItems.push(
+      { icon: Users, label: "Employee Directory", id: "employees" },
+      { icon: Clock, label: "Leave Management", id: "leave-management" },
+      { icon: PlusCircle, label: "Internal Applications", id: "internal-applications" },
+      { icon: Users, label: "Job Applications", id: "applications" },
+      { icon: Calendar, label: "Interviews", id: "interviews" },
+      { icon: FileSignature, label: "Letters", id: "letters" },
+      { icon: Bell, label: "Announcements", id: "announcements" },
+    );
+  }
+
+  // Project Manager View
+  if (isPM) {
+    baseItems.push(
+      { icon: Briefcase, label: "Projects", id: "portfolio" }, // Map to portfolio manager
+      { icon: Receipt, label: "Invoices", id: "invoices" },
+    );
+  }
+
+  // Finance Manager View
+  if (isFinance) {
+    baseItems.push(
+      { icon: Receipt, label: "Invoices", id: "invoices" },
+    );
   }
 
   return baseItems;
 };
 
-export default function AdminDashboard({ user }: { user: User }) {
+export default function AdminDashboard({ user, initialRole = "admin" }: { user: User; initialRole?: string }) {
   const [active, setActive] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
 
   // Get user profile to determine role
   const [profile, setProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // Start with profileLoading=false since we already have the role from server
+  const [profileLoading, setProfileLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -162,7 +216,8 @@ export default function AdminDashboard({ user }: { user: User }) {
     }
   }, [active]);
 
-  const role = profile?.role || "client";
+  // Use profile.role if fetched, otherwise fall back to the server-supplied initialRole
+  const role = profile?.role || initialRole;
   const navItems = getNavItems(role);
 
   const handleSignOut = async () => {
@@ -256,6 +311,8 @@ export default function AdminDashboard({ user }: { user: User }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <GlobalSearch onNavigate={(tab) => setActive(tab)} />
+            <NotificationBell onNavigate={(tab) => setActive(tab)} />
             <Link href="/" className="text-xs text-[#64748B] hover:text-[#0D9488] transition-colors">
               ← View Site
             </Link>
@@ -283,7 +340,8 @@ export default function AdminDashboard({ user }: { user: User }) {
             </div>
           ) : (
             <>
-          {active === "overview" && <OverviewPanel />}
+          {active === "overview" && <OverviewPanel onNavigate={(tab) => setActive(tab)} />}
+          {active === "academy" && <AcademyAdminPanel />}
           {active === "my-account" && <MyAccountPanel />}
 
           {active === "my-profile" && <MyTeamProfilePanel />}
@@ -309,6 +367,15 @@ export default function AdminDashboard({ user }: { user: User }) {
           {active === "settings" && <SettingsPanel />}
           {active === "team-chat" && <TeamChatPanel user={user} userRole={role} />}
           {active === "tasks" && <TaskManagerPanel user={user} userRole={role} />}
+          {active === "leave-management" && <LeaveManagerPanel />}
+          {active === "employees" && <EmployeeManagerPanel />}
+          {active === "internal-applications" && <InternalApplicationsPanel />}
+          {active === "analytics" && <AnalyticsPanel />}
+          {active === "calendar" && <CalendarPanel userRole={role} />}
+          {active === "crm" && <CRMPanel />}
+          {active === "payroll" && <PayrollPanel />}
+          {active === "performance" && <PerformancePanel />}
+          {active === "audit-log" && <AuditLogPanel />}
             </>
           )}
         </div>

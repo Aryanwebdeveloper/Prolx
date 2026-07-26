@@ -434,3 +434,91 @@ export async function getUnreadMessagesCount(): Promise<number> {
 
   return unreadCount;
 }
+
+// ============================================================
+// TASK EXTENDED ACTIONS (CHECKLISTS, COMMENTS, TIME LOGS)
+// ============================================================
+
+export async function getTaskChecklist(taskId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_checklists")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("order_index", { ascending: true });
+  return { data: data || [], error };
+}
+
+export async function addTaskChecklistItem(taskId: string, title: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_checklists")
+    .insert({ task_id: taskId, title, is_completed: false })
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function toggleTaskChecklistItem(itemId: string, isCompleted: boolean) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_checklists")
+    .update({ is_completed: isCompleted, completed_at: isCompleted ? new Date().toISOString() : null })
+    .eq("id", itemId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function getTaskComments(taskId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_comments")
+    .select("*, user:profiles(id, full_name, avatar_url)")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  return { data: data || [], error };
+}
+
+export async function addTaskComment(taskId: string, content: string, attachmentUrl?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("task_comments")
+    .insert({ task_id: taskId, user_id: user.id, content, attachment_url: attachmentUrl || null })
+    .select("*, user:profiles(id, full_name, avatar_url)")
+    .single();
+  return { data, error };
+}
+
+export async function logTaskTime(taskId: string, durationMinutes: number, description: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // Fetch task details to get project_id if linked
+  const { data: task } = await supabase.from("staff_tasks").select("project_id").eq("id", taskId).single();
+
+  const { error } = await supabase.from("time_logs").insert({
+    user_id: user.id,
+    task_id: taskId,
+    project_id: task?.project_id || null,
+    description,
+    started_at: new Date(Date.now() - durationMinutes * 60000).toISOString(),
+    ended_at: new Date().toISOString(),
+    duration_minutes: durationMinutes,
+    is_billable: true
+  });
+  return { error };
+}
+
+export async function updateTaskProgress(taskId: string, progress: number) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("staff_tasks")
+    .update({ progress, updated_at: new Date().toISOString() })
+    .eq("id", taskId);
+  return { error };
+}

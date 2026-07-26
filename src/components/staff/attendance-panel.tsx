@@ -17,13 +17,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 
-type AttendanceStatus = "present" | "absent" | "late" | "half_day";
+type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave";
 
 const STATUS_CONFIG = {
   present: { label: "Present", color: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
   absent: { label: "Absent", color: "bg-red-100 text-red-700", dot: "bg-red-500" },
   late: { label: "Late", color: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
   half_day: { label: "Half Day", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
+  on_leave: { label: "On Leave", color: "bg-purple-100 text-purple-700", dot: "bg-purple-500" },
 } as const;
 
 const LOCATION_ICONS: Record<string, any> = {
@@ -389,6 +390,7 @@ export default function AttendancePanel({ userId }: { userId: string }) {
     late: history.filter(r => r.status === "late").length,
     absent: history.filter(r => r.status === "absent").length,
     half_day: history.filter(r => r.status === "half_day").length,
+    on_leave: history.filter(r => r.status === "on_leave").length,
   };
 
   if (loading) {
@@ -498,10 +500,11 @@ export default function AttendancePanel({ userId }: { userId: string }) {
           </div>
 
           {/* Monthly Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
               { label: "Present", value: summary.present, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
               { label: "Late", value: summary.late, color: "text-orange-600", bg: "bg-orange-50 border-orange-100" },
+              { label: "On Leave", value: summary.on_leave, color: "text-purple-600", bg: "bg-purple-50 border-purple-100" },
               { label: "Absent", value: summary.absent, color: "text-red-600", bg: "bg-red-50 border-red-100" },
               { label: "Half Day", value: summary.half_day, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-100" },
             ].map(({ label, value, color, bg }) => (
