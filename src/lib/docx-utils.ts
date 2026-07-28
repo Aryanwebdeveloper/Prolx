@@ -1,27 +1,205 @@
-// Client-side DOCX generation using the docx package
-// Generates .docx files as Blob downloads in the browser
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType } from "docx";
+import type { BusinessDocumentWithRelations } from "@/types/erp";
 
-import type { LetterType } from "@/types/erp";
+export async function generateProposalDocx(docData: BusinessDocumentWithRelations): Promise<Blob> {
+  const sections = docData.sections || [];
 
-async function getDocx() {
-  const docx = await import("docx");
-  return docx;
-}
+  // Build the docx child elements
+  const children: any[] = [];
 
-// ── Load stamp as ArrayBuffer for DOCX embedding ──
-let stampBufferCache: ArrayBuffer | null = null;
+  // Title page / Header
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: docData.title.toUpperCase(),
+          bold: true,
+          size: 40,
+          color: "0F172A",
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: "PROLX DIGITAL AGENCY",
+          bold: true,
+          size: 24,
+          color: "0D9488",
+        }),
+      ],
+      spacing: { before: 200, after: 800 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: `Document Reference: ${docData.id}`,
+          size: 20,
+          color: "64748B",
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: `Prepared For: ${docData.client?.full_name || "Valued Client"}`,
+          size: 20,
+          color: "64748B",
+        }),
+      ],
+      spacing: { after: 1200 },
+    })
+  );
 
-async function loadStampBuffer(): Promise<ArrayBuffer | null> {
-  if (stampBufferCache) return stampBufferCache;
-  try {
-    const response = await fetch("/ProlxStampsBD.png");
-    const buffer = await response.arrayBuffer();
-    stampBufferCache = buffer;
-    return buffer;
-  } catch {
-    return null;
+  // Content Sections
+  sections.forEach((sec) => {
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        children: [
+          new TextRun({
+            text: sec.title,
+            bold: true,
+            size: 28,
+            color: "0D9488",
+          }),
+        ],
+        spacing: { before: 400, after: 200 },
+      })
+    );
+
+    const bodyText = sec.content || "";
+    // Clean raw HTML tags for docx export
+    const cleanText = bodyText
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>|<\/li>|<\/h[1-6]>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, " ")
+      .replace(/->|--&gt;|&gt;|>--/g, "→");
+
+    cleanText.split("\n").forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      const isArrowFlow = trimmed.includes("→");
+      const isVisionQuote = trimmed.toLowerCase().includes("vision") || trimmed.startsWith('"') || trimmed.startsWith('“');
+
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              size: isVisionQuote ? 22 : 21,
+              bold: isArrowFlow || isVisionQuote,
+              italics: isVisionQuote,
+              color: isArrowFlow ? "0D9488" : isVisionQuote ? "0F172A" : "334155",
+            }),
+          ],
+          spacing: { after: 150 },
+        })
+      );
+    });
+  });
+
+  // Table row headers if pricing exists
+  if (docData.line_items && docData.line_items.length > 0) {
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        children: [
+          new TextRun({
+            text: "Detailed Pricing & Cost Breakdown",
+            bold: true,
+            size: 28,
+            color: "0D9488",
+          }),
+        ],
+        spacing: { before: 400, after: 200 },
+      })
+    );
+
+    const tableRows = [
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Category", bold: true, color: "FFFFFF" })] })], shading: { fill: "0D9488" } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Description", bold: true, color: "FFFFFF" })] })], shading: { fill: "0D9488" } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Qty", bold: true, color: "FFFFFF" })] })], shading: { fill: "0D9488" } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Price", bold: true, color: "FFFFFF" })] })], shading: { fill: "0D9488" } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Total", bold: true, color: "FFFFFF" })] })], shading: { fill: "0D9488" } }),
+        ],
+      }),
+    ];
+
+    docData.line_items.forEach((item) => {
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.category })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.description })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(item.quantity) })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: Number(item.unit_price).toLocaleString() })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: Number(item.total).toLocaleString() })] })] }),
+          ],
+        })
+      );
+    });
+
+    const pricingTable = new Table({
+      rows: tableRows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+    });
+
+    children.push(pricingTable);
+
+    // Add totals block
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({
+            text: `TAX: ${docData.tax_rate}% | DISCOUNT: ${docData.currency} ${Number(docData.discount).toLocaleString()}\n`,
+            size: 20,
+            color: "64748B",
+          }),
+          new TextRun({
+            text: `GRAND TOTAL: ${docData.currency} ${Number(docData.total).toLocaleString()}`,
+            bold: true,
+            size: 24,
+            color: "0D9488",
+          }),
+        ],
+        spacing: { before: 200, after: 400 },
+      })
+    );
   }
+
+  const wordDoc = new Document({
+    sections: [
+      {
+        properties: {},
+        children,
+      },
+    ],
+  });
+
+  return Packer.toBlob(wordDoc);
 }
+
+// DOCX Generator for official Company Letters
+import type { LetterType } from "@/types/erp";
 
 export async function generateLetterDOCX(params: {
   letterId: string;
@@ -31,625 +209,112 @@ export async function generateLetterDOCX(params: {
   content: Record<string, string>;
   date: string;
 }): Promise<Blob> {
-  const {
-    Document, Packer, Paragraph, TextRun, AlignmentType,
-    HeadingLevel, BorderStyle, Table, TableRow, TableCell,
-    WidthType, ShadingType, Header, ImageRun,
-  } = await getDocx();
+  const children: any[] = [];
 
-  const teal = "0D9488";
-  const dark = "0F172A";
+  // Header Banner title
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: "PROLX DIGITAL AGENCY",
+          bold: true,
+          size: 28,
+          color: "0D9488",
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: `Official Document Ref: ${params.letterId}`,
+          size: 18,
+          color: "64748B",
+        }),
+      ],
+      spacing: { after: 400 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Date: ${params.date}`,
+          size: 20,
+          color: "334155",
+        }),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Recipient: ${params.recipientName}`,
+          bold: true,
+          size: 22,
+          color: "0F172A",
+        }),
+      ],
+      spacing: { after: 200 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Subject: ${params.subject}`,
+          bold: true,
+          size: 24,
+          color: "0F172A",
+        }),
+      ],
+      spacing: { after: 400 },
+    })
+  );
 
-  // Build body paragraphs based on letter type
-  const bodyText = buildDocxLetterBody(params.letterType, params.content, params.recipientName);
-
-  // Load stamp image
-  const stampBuffer = await loadStampBuffer();
-
-  const stampParagraphs: InstanceType<typeof Paragraph>[] = [];
-  if (stampBuffer) {
-    stampParagraphs.push(
+  // Content Paragraphs
+  const bodyText = `Dear ${params.recipientName},\n\n` + (params.content.body || "Please refer to standard letter templates.");
+  bodyText.split("\n").forEach((paragraphText) => {
+    children.push(
       new Paragraph({
         children: [
-          new ImageRun({
-            data: stampBuffer,
-            transformation: { width: 150, height: 150 },
-            type: "png",
+          new TextRun({
+            text: paragraphText,
+            size: 22,
+            color: "334155",
           }),
         ],
-        alignment: AlignmentType.RIGHT,
-        spacing: { before: 100 },
+        spacing: { after: 150 },
       })
     );
-  }
+  });
 
-  const doc = new Document({
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "Authorized Signatory",
+          bold: true,
+          size: 22,
+          color: "0F172A",
+        }),
+      ],
+      spacing: { before: 800 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "Prolx Digital Agency",
+          size: 18,
+          color: "64748B",
+        }),
+      ],
+    })
+  );
+
+  const wordDoc = new Document({
     sections: [
       {
-        headers: {
-          default: new Header({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: "PROLX DIGITAL AGENCY",
-                    bold: true,
-                    size: 36,
-                    color: "FFFFFF",
-                  }),
-                ],
-                shading: {
-                  type: ShadingType.CLEAR,
-                  fill: teal,
-                  color: "auto",
-                },
-                spacing: { after: 100 },
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: "info@prolx.com | www.prolx.com",
-                    size: 18,
-                    color: "FFFFFF",
-                  }),
-                  new TextRun({ text: " | Ref: ", size: 18, color: "FFFFFF" }),
-                  new TextRun({ text: params.letterId, size: 18, color: "FFFFFF", bold: true }),
-                ],
-                shading: { type: ShadingType.CLEAR, fill: teal, color: "auto" },
-                spacing: { after: 200 },
-              }),
-            ],
-          }),
-        },
-        children: [
-          // Date
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `Date: ${params.date || new Date().toLocaleDateString("en-GB")}`,
-                size: 20,
-                color: "64748B",
-              }),
-            ],
-            spacing: { before: 200, after: 300 },
-          }),
-
-          // Recipient
-          new Paragraph({
-            children: [new TextRun({ text: params.recipientName, bold: true, size: 24, color: dark })],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "Prolx Digital Agency", size: 20, color: "64748B" })],
-            spacing: { after: 400 },
-          }),
-
-          // Subject line
-          new Paragraph({
-            children: [new TextRun({ text: `Subject: ${params.subject}`, bold: true, size: 24, color: dark })],
-            border: {
-              bottom: { style: BorderStyle.SINGLE, color: teal, size: 4 },
-            },
-            spacing: { after: 300 },
-          }),
-
-          // Body
-          ...bodyText.map(
-            (line) => {
-              // Check if line is a heading (all caps or starts with number followed by period)
-              const isHeading = /^(TERMS|INTERNSHIP|PAID|FINAL|IMPORTANT|CLEARANCE|DEFINITION|NDA|\d+\.)/.test(line) && line.length < 80;
-              return new Paragraph({
-                children: [new TextRun({ 
-                  text: line, 
-                  size: isHeading ? 22 : 22, 
-                  color: dark,
-                  bold: isHeading,
-                })],
-                spacing: { after: line === "" ? 100 : 200 },
-                alignment: AlignmentType.JUSTIFIED,
-              });
-            }
-          ),
-
-          // Spacing before signature
-          new Paragraph({ spacing: { before: 600 } }),
-
-          // Signature
-          new Paragraph({
-            children: [new TextRun({ text: "Yours sincerely,", size: 22, color: dark })],
-            spacing: { after: 400 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "________________________", size: 22, color: dark })],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "Authorized Signatory", bold: true, size: 22, color: dark })],
-            spacing: { after: 80 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "Prolx Digital Agency", size: 20, color: "64748B" })],
-            spacing: { after: 60 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "Human Resources Department", size: 20, color: "64748B" })],
-            spacing: { after: 200 },
-          }),
-
-          // Stamp image
-          ...stampParagraphs,
-
-          // Verification line
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `Document Ref: ${params.letterId} | Generated: ${new Date().toLocaleDateString("en-GB")} | Digitally verified by Prolx Digital Agency`,
-                size: 14,
-                color: "94A3B8",
-                italics: true,
-              }),
-            ],
-            spacing: { before: 400 },
-            alignment: AlignmentType.CENTER,
-          }),
-        ],
+        children,
       },
     ],
   });
 
-  const buffer = await Packer.toBlob(doc);
-  return buffer;
-}
-
-function buildDocxLetterBody(
-  type: LetterType,
-  content: Record<string, string>,
-  recipientName: string
-): string[] {
-  const salutation = `Dear ${recipientName},`;
-
-  switch (type) {
-    case "offer_letter":
-      return [
-        salutation,
-        "",
-        `We are pleased to offer you the position of ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.`,
-        "",
-        `Your monthly compensation will be PKR ${content.salary || "_____"}. Your employment will commence on ${content.start_date || "_____"}.${content.probation_months ? ` There will be a probation period of ${content.probation_months} month(s), during which either party may terminate the employment with a 7-day written notice.` : ""}`,
-        "",
-        ...(content.reporting_to ? [`You will report directly to ${content.reporting_to}.`, ""] : []),
-        ...(content.office_location ? [`Your primary work location will be at ${content.office_location}.`, ""] : []),
-        "TERMS & CONDITIONS:",
-        "",
-        "1. Employment Nature: Your employment is on a full-time basis. You are expected to devote your full professional attention to the duties assigned. Any outside employment or freelance work must be pre-approved by management.",
-        "",
-        "2. Working Hours: Standard working hours are Monday to Friday, 9:00 AM to 6:00 PM, with a one-hour break. Overtime may be required as per project needs.",
-        "",
-        "3. Compensation & Benefits: Your salary will be disbursed on the last working day of each month via bank transfer. All applicable statutory deductions will be withheld as per the laws of Pakistan.",
-        "",
-        "4. Leave Policy: You are entitled to annual leaves, casual leaves, and sick leaves as per the company leave policy.",
-        "",
-        "5. Confidentiality: You agree to maintain strict confidentiality regarding all proprietary information, trade secrets, client data, source code, and business strategies. This obligation survives termination.",
-        "",
-        "6. Intellectual Property: All work product, code, designs, and creative materials developed during your employment shall be the exclusive property of Prolx Digital Agency.",
-        "",
-        "7. Non-Compete: During employment and for 6 months after termination, you agree not to engage in competing business or solicit company clients.",
-        "",
-        "8. Termination: Either party may terminate by providing 30-day written notice or payment in lieu thereof.",
-        "",
-        "9. Code of Conduct: You are expected to maintain professional conduct, integrity, and adherence to all company policies.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "Please confirm your acceptance by signing and returning a copy of this letter within 7 business days.",
-        "",
-        "We look forward to having you as part of the Prolx team.",
-      ];
-
-    case "internship_letter":
-      return [
-        salutation,
-        "",
-        `We are pleased to offer you an internship position as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.`,
-        "",
-        `Internship Duration: ${content.duration || "_____"}, commencing from ${content.start_date || "_____"}${content.end_date ? ` until ${content.end_date}` : ""}.`,
-        "",
-        ...(content.working_hours ? [`Working Hours: ${content.working_hours}.`, ""] : []),
-        ...(content.mentor_name ? [`Mentor: ${content.mentor_name}.`, ""] : []),
-        ...(content.reporting_to ? [`Reporting To: ${content.reporting_to}.`, ""] : []),
-        ...(content.office_location ? [`Work Location: ${content.office_location}.`, ""] : []),
-        "INTERNSHIP TERMS & CONDITIONS:",
-        "",
-        "1. Nature of Internship: This is an unpaid internship designed to provide practical experience and professional development. This does not constitute an employment relationship.",
-        "",
-        "2. Learning Objectives: You will be exposed to real-world projects, industry best practices, and professional methodologies with hands-on training and mentorship.",
-        "",
-        "3. Attendance: Regular attendance is mandatory. Maintain at least 80% attendance throughout the internship.",
-        "",
-        "4. Professional Conduct: Dress appropriately, behave professionally, and respect workplace policies.",
-        "",
-        "5. Confidentiality: Keep all proprietary information, client data, project details, and source code strictly confidential during and after the internship.",
-        "",
-        "6. Intellectual Property: All work created during the internship is the exclusive property of Prolx Digital Agency.",
-        "",
-        "7. Evaluation: Performance will be evaluated periodically with a formal review at the end.",
-        "",
-        "8. Certificate: Upon successful completion, you will receive an official Internship Completion Certificate.",
-        "",
-        "9. Termination: Either party may terminate with 7 days written notice.",
-        "",
-        "10. No Employment Guarantee: This internship does not guarantee subsequent employment.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "Please confirm your acceptance by signing and returning a copy of this letter.",
-      ];
-
-    case "paid_internship_letter":
-      return [
-        salutation,
-        "",
-        `We are pleased to offer you a paid internship position as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.`,
-        "",
-        `Internship Duration: ${content.duration || "_____"}, commencing from ${content.start_date || "_____"}${content.end_date ? ` until ${content.end_date}` : ""}.`,
-        "",
-        `Monthly Stipend: PKR ${content.stipend || "_____"}${content.payment_schedule ? `, payable ${content.payment_schedule}` : ", payable Monthly"}.`,
-        "",
-        ...(content.working_hours ? [`Working Hours: ${content.working_hours}.`, ""] : []),
-        ...(content.mentor_name ? [`Mentor: ${content.mentor_name}.`, ""] : []),
-        ...(content.reporting_to ? [`Reporting To: ${content.reporting_to}.`, ""] : []),
-        ...(content.office_location ? [`Work Location: ${content.office_location}.`, ""] : []),
-        "PAID INTERNSHIP TERMS & CONDITIONS:",
-        "",
-        "1. Nature: This is a paid internship for practical experience. The stipend is a learning allowance, not an employment salary.",
-        "",
-        `2. Stipend & Payment: Monthly stipend of PKR ${content.stipend || "_____"} disbursed ${content.payment_schedule || "monthly"} via bank transfer. Tax deductions apply as per law.`,
-        "",
-        "3. Learning Objectives: You will work on real projects with mentorship, code reviews, and skill development workshops.",
-        "",
-        "4. Attendance: Maintain at least 80% attendance. Stipend deductions may apply for unexcused absences.",
-        "",
-        "5. Professional Conduct: Maintain professional behavior and respect company policies.",
-        "",
-        "6. Confidentiality: Maintain strict confidentiality regarding all proprietary information. This obligation continues after the internship.",
-        "",
-        "7. Intellectual Property: All work product is the exclusive property of Prolx Digital Agency.",
-        "",
-        "8. Evaluation: Performance reviewed periodically. Final evaluation determines certificate grade.",
-        "",
-        "9. Certificate: Upon completion, receive an official Paid Internship Completion Certificate.",
-        "",
-        "10. Termination: Either party may terminate with 7 days notice. Stipend calculated pro-rata.",
-        "",
-        "11. No Employment Guarantee: Outstanding performers may be considered for permanent roles.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "Please confirm your acceptance by signing and returning a copy of this letter.",
-      ];
-
-    case "appointment_letter":
-      return [
-        salutation,
-        "",
-        `We are delighted to appoint you as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.`,
-        "",
-        `Your joining date is ${content.joining_date || "_____"}, with employment type: ${content.employment_type || "Full-time"}.${content.salary ? ` Your monthly salary will be PKR ${content.salary}.` : ""}`,
-        "",
-        "TERMS & CONDITIONS:",
-        "",
-        "1. You are expected to abide by all company rules, regulations, and policies.",
-        "",
-        "2. Your appointment is subject to satisfactory verification of qualifications and background.",
-        "",
-        "3. Maintain confidentiality of all company information and intellectual property.",
-        "",
-        "4. The company reserves the right to transfer you as per business requirements.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "We congratulate you on this appointment and look forward to your contributions.",
-      ];
-
-    case "experience_letter":
-      return [
-        salutation,
-        "",
-        `This is to certify that ${recipientName} was employed at Prolx Digital Agency as ${content.position || "_____"}${content.department ? ` in the ${content.department} Department` : ""}, from ${content.joining_date || "_____"} to ${content.leaving_date || "_____"}.`,
-        "",
-        `During the tenure, ${recipientName} demonstrated ${content.performance || "good"} performance and professional conduct. They made valuable contributions to the organization.`,
-        "",
-        `${recipientName} has been relieved of all duties and there are no outstanding obligations from either party.`,
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "We wish them all the best in their future endeavors.",
-      ];
-
-    case "termination_letter":
-      return [
-        salutation,
-        "",
-        `We regret to inform you that your employment with Prolx Digital Agency as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} is hereby terminated, effective ${content.termination_date || "_____"}.`,
-        "",
-        `Reason for Termination: ${content.reason || "_____"}.`,
-        "",
-        ...(content.reason_details ? [`Details: ${content.reason_details}`, ""] : []),
-        ...(content.notice_period ? [`Notice Period: ${content.notice_period} has been provided as per company policy.`, ""] : []),
-        "FINAL SETTLEMENT & OBLIGATIONS:",
-        "",
-        "1. Final Settlement: Pending salary and dues will be processed within 30 days after deductions.",
-        "",
-        "2. Return of Property: Return all company property (laptop, access cards, documents) within 3 working days.",
-        "",
-        "3. Access Revocation: System and building access will be revoked on your last working day.",
-        "",
-        "4. Confidentiality: Your confidentiality obligations continue after termination.",
-        "",
-        "5. Non-Compete: Non-compete clauses remain in effect for the specified duration.",
-        "",
-        "6. Exit Clearance: Complete exit clearance including handover and knowledge transfer.",
-        "",
-        ...(content.settlement_details ? [`Settlement Details: ${content.settlement_details}`, ""] : []),
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "If you have concerns, please contact the HR department.",
-      ];
-
-    case "promotion_letter":
-      return [
-        salutation,
-        "",
-        "We are pleased to inform you that, in recognition of your outstanding performance and contributions, you have been promoted.",
-        "",
-        `Current Position: ${content.current_position || "_____"}`,
-        `New Position: ${content.new_position || "_____"}`,
-        ...(content.department ? [`Department: ${content.department}`] : []),
-        `Effective Date: ${content.effective_date || "_____"}`,
-        ...(content.new_salary ? [`Revised Monthly Salary: PKR ${content.new_salary}`] : []),
-        ...(content.reporting_to ? [`Reporting To: ${content.reporting_to}`] : []),
-        "",
-        "TERMS & CONDITIONS:",
-        "",
-        "1. You will assume additional responsibilities commensurate with your new role.",
-        "",
-        "2. Revised compensation is effective from the date mentioned. Other terms remain unchanged.",
-        "",
-        "3. Progress will be reviewed after 3 months in the new role.",
-        "",
-        "4. All existing employment terms including confidentiality and IP clauses continue to apply.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "Congratulations on this well-deserved achievement.",
-      ];
-
-    case "warning_letter":
-      return [
-        salutation,
-        "",
-        `This letter serves as a ${content.warning_type || "formal warning"} regarding your conduct as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""}.`,
-        "",
-        ...(content.incident_date ? [`Date of Incident: ${content.incident_date}`, ""] : []),
-        `Nature of Violation:`,
-        content.violation || "_____",
-        "",
-        `Expected Corrective Action:`,
-        content.corrective_action || "_____",
-        "",
-        ...(content.deadline ? [`Improvement Deadline: ${content.deadline}`, ""] : []),
-        "IMPORTANT NOTICE:",
-        "",
-        "1. This warning will be documented in your personnel file.",
-        "",
-        "2. Failure to comply may result in further disciplinary action including termination.",
-        "",
-        ...(content.consequences ? [`3. Consequences: ${content.consequences}`, ""] : []),
-        "3. You may submit a written response within 5 business days.",
-        "",
-        "4. Contact your manager or HR if you need support to address these issues.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "We value your contributions and expect prompt resolution.",
-      ];
-
-    case "nda_agreement":
-      return [
-        salutation,
-        "",
-        `This Non-Disclosure Agreement is entered into by Prolx Digital Agency ("Company") and ${recipientName} ("Receiving Party")${content.position ? `, holding the position of ${content.position}` : ""}.`,
-        "",
-        `Effective Date: ${content.effective_date || "_____"}`,
-        `Duration: ${content.duration_years || "_____"} year(s)`,
-        ...(content.project_name ? [`Project/Client: ${content.project_name}`] : []),
-        "",
-        "1. CONFIDENTIAL INFORMATION:",
-        "Includes source code, algorithms, software architecture, database schemas, API keys, client lists, business strategies, financial data, and any proprietary information.",
-        ...(content.scope ? [`Specific Scope: ${content.scope}`] : []),
-        "",
-        "2. OBLIGATIONS:",
-        "(a) Maintain confidentiality and do not disclose to third parties without written consent.",
-        "(b) Use information solely for role-related purposes.",
-        "(c) Take reasonable measures to prevent unauthorized disclosure.",
-        "",
-        "3. PERMITTED DISCLOSURES:",
-        "Only with written consent, when required by law (with prior notice), or when information becomes public through no fault of the Receiving Party.",
-        "",
-        "4. RETURN OF MATERIALS:",
-        "Upon termination, return or destroy all Confidential Information including digital copies.",
-        "",
-        "5. INTELLECTUAL PROPERTY:",
-        "All IP created using Confidential Information remains Company property.",
-        "",
-        "6. REMEDIES FOR BREACH:",
-        "Breach may result in legal action including injunctive relief, monetary damages, and termination.",
-        "",
-        `7. DURATION: This Agreement remains in force for ${content.duration_years || "_____"} year(s) and survives termination of engagement.`,
-        "",
-        ...(content.governing_law ? [`8. GOVERNING LAW: Governed by the laws of ${content.governing_law}.`, ""] : []),
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "By signing below, both parties acknowledge and agree to these terms.",
-      ];
-
-    case "relieving_letter":
-      return [
-        salutation,
-        "",
-        `This confirms that ${recipientName} has been relieved from the position of ${content.position || "_____"}${content.department ? ` in the ${content.department} Department` : ""} at Prolx Digital Agency, effective ${content.last_working_date || "_____"}.`,
-        "",
-        `Date of Joining: ${content.joining_date || "_____"}`,
-        `Last Working Date: ${content.last_working_date || "_____"}`,
-        ...(content.resignation_date ? [`Resignation Submitted: ${content.resignation_date}`] : []),
-        "",
-        `${recipientName} has served the required notice period and completed all handover formalities. All company property has been returned.`,
-        "",
-        ...(content.performance ? [`Performance: ${recipientName} demonstrated ${content.performance} performance during their tenure.`, ""] : []),
-        "CLEARANCE CONFIRMATION:",
-        "",
-        "1. All pending salaries and benefits have been settled.",
-        "2. All company assets have been returned.",
-        "3. Project handovers completed satisfactorily.",
-        "4. No objections to the release of the employee.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        `We wish ${recipientName} all the best in future endeavors.`,
-      ];
-
-    case "salary_certificate":
-      return [
-        salutation,
-        "",
-        `This is to certify that ${recipientName} is a regular employee of Prolx Digital Agency, currently serving as ${content.position || "_____"}${content.department ? ` in the ${content.department} Department` : ""}.`,
-        "",
-        `Their monthly gross salary for ${content.month_year || "_____"} is PKR ${content.salary || "_____"}.`,
-        "",
-        ...(content.bank_name ? [`This salary is disbursed via ${content.bank_name}${content.account_number ? `, Account No: ${content.account_number}` : ""}.`, ""] : []),
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "This certificate is issued on request of the employee for official purposes.",
-      ];
-
-    case "completion_letter":
-      return [
-        salutation,
-        "",
-        `This is to certify that ${recipientName} has successfully completed their internship/tenure as ${content.position || "_____"}${content.department ? ` in the ${content.department} Department` : ""} at Prolx Digital Agency.`,
-        "",
-        "INTERNSHIP / TENURE DETAILS:",
-        `Start Date: ${content.start_date || "_____"}`,
-        `Completion Date: ${content.end_date || "_____"}`,
-        `Total Duration: ${content.duration || "_____"}`,
-        ...(content.mentor_name ? [`Supervisor / Mentor: ${content.mentor_name}`] : []),
-        `Performance Rating: ${content.performance || "Outstanding / Excellent"}`,
-        "",
-        ...(content.projects_worked_on ? ["KEY PROJECTS & CONTRIBUTIONS:", content.projects_worked_on, ""] : []),
-        "During this period, they exhibited high dedication, technical competency, and professional ethics. They actively participated in assigned project tasks, collaborated effectively with the team, and demonstrated continuous learning.",
-        "",
-        "This letter is issued as an official Internship / Course Completion Certificate and may be presented for academic, employment, or credential verification purposes.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        `We express our appreciation for their contributions and wish ${recipientName} every success in their future career endeavors.`,
-      ];
-
-    case "job_confirmation_letter":
-      return [
-        salutation,
-        "",
-        "We are pleased to confirm your appointment as a permanent employee at Prolx Digital Agency.",
-        "",
-        `Position: ${content.position || "_____"}`,
-        ...(content.department ? [`Department: ${content.department}`] : []),
-        `Original Joining Date: ${content.joining_date || "_____"}`,
-        `Confirmation Effective Date: ${content.confirmation_date || "_____"}`,
-        `Confirmed Monthly Salary: PKR ${content.salary || "_____"}`,
-        "",
-        "Having successfully completed your probation period, your performance has been evaluated and found satisfactory. You are now confirmed as a permanent member of our team.",
-        "",
-        "TERMS & CONDITIONS:",
-        "",
-        "1. All terms and conditions as stated in your original offer letter remain in effect.",
-        "2. Your benefits, leave entitlements, and other employment privileges are now fully applicable.",
-        "3. Your performance will continue to be reviewed on a bi-annual basis.",
-        "4. All confidentiality, intellectual property, and non-compete clauses continue to apply.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "Congratulations on your permanent confirmation. We look forward to your continued contributions.",
-      ];
-
-    case "transfer_letter":
-      return [
-        salutation,
-        "",
-        `This letter is to inform you that, based on business requirements, you are being transferred effective ${content.transfer_date || "_____"}.`,
-        "",
-        `Current Position: ${content.position || "_____"}`,
-        ...(content.department ? [`Current Department: ${content.department}`] : []),
-        `New Department / Location: ${content.new_department || "_____"}`,
-        "",
-        ...(content.reason ? [`Reason for Transfer: ${content.reason}`, ""] : []),
-        "TERMS & CONDITIONS:",
-        "",
-        "1. Your designation, salary, and seniority will remain unchanged unless specifically mentioned.",
-        "2. Report to the new location/department on or before the effective transfer date.",
-        "3. Complete all handover responsibilities before the transfer date.",
-        "4. All existing employment terms including confidentiality obligations continue to apply.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "We trust that you will continue to perform with the same commitment and professionalism in your new role.",
-      ];
-
-    case "no_objection_certificate":
-      return [
-        salutation,
-        "",
-        `This is to certify that ${recipientName} is currently employed at Prolx Digital Agency as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""}, having joined on ${content.joining_date || "_____"}.`,
-        "",
-        `Purpose: ${content.purpose || "_____"}`,
-        "",
-        ...(content.valid_until ? [`This NOC is valid until: ${content.valid_until}`, ""] : []),
-        "Prolx Digital Agency has no objection to the above-stated purpose. This certificate is issued at the request of the employee purely for official and documentary purposes.",
-        "",
-        "This NOC does not release the employee from their employment obligations or contractual commitments with Prolx Digital Agency.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "This document is digitally generated and verified by Prolx Digital Agency.",
-      ];
-
-    case "leave_approval_letter":
-      return [
-        salutation,
-        "",
-        "We are pleased to inform you that your leave request has been reviewed and approved as per the details below:",
-        "",
-        `Employee: ${recipientName}`,
-        `Position: ${content.position || "_____"}`,
-        ...(content.department ? [`Department: ${content.department}`] : []),
-        `Leave Type: ${content.leave_type || "Annual Leave"}`,
-        `Leave From: ${content.leave_from || "_____"}`,
-        `Leave To: ${content.leave_to || "_____"}`,
-        `Total Days: ${content.total_days || "_____"} day(s)`,
-        "",
-        "IMPORTANT NOTES:",
-        "",
-        "1. Ensure all pending work is handed over or completed before your leave begins.",
-        "2. Be reachable for urgent matters during your leave period.",
-        "3. Resume duties on the first working day following the approved leave period.",
-        "4. Failure to return without prior written communication will be treated as unauthorized absence.",
-        "",
-        ...(content.extra_notes ? [content.extra_notes, ""] : []),
-        "We wish you a restful and productive time off.",
-      ];
-
-    case "reference_letter":
-      return [
-        salutation,
-        "",
-        `It is with great pleasure that I provide this reference letter for ${recipientName}, who served as ${content.position || "_____"}${content.department ? ` in the ${content.department} department` : ""} at Prolx Digital Agency.`,
-        "",
-        `Date of Joining: ${content.joining_date || "_____"}`,
-        ...(content.leaving_date ? [`Last Working Date: ${content.leaving_date}`] : []),
-        `Overall Performance: ${content.performance || "Excellent"}`,
-        "",
-        content.extra_notes || `During their tenure, ${recipientName} consistently demonstrated exceptional professional competence, strong work ethic, and a collaborative spirit. They were a reliable and valued member of our team.`,
-        "",
-        ...(content.referee_name ? [`This reference is provided by ${content.referee_name} on behalf of Prolx Digital Agency.`, ""] : []),
-        `I wholeheartedly recommend ${recipientName} for any future employment, academic program, or professional opportunity.`,
-      ];
-
-    case "custom":
-    default:
-      return [salutation, "", ...(content.body || "").split("\n")];
-  }
+  return Packer.toBlob(wordDoc);
 }

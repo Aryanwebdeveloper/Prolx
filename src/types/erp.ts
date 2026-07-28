@@ -394,3 +394,210 @@ export type AttendanceSummary = {
   on_leave: number;
   total: number;
 };
+
+// ============================================================
+// BUSINESS DOCUMENTS MODULE TYPES
+// ============================================================
+
+export type BusinessDocType =
+  | "proposal"
+  | "quotation"
+  | "srs"
+  | "brd"
+  | "contract"
+  | "nda"
+  | "agreement"
+  | "scope_doc"
+  | "meeting_minutes"
+  | "purchase_order"
+  | "service_agreement"
+  | "project_plan"
+  | "custom";
+
+export type BusinessDocStatus =
+  | "draft"
+  | "review"
+  | "approved"
+  | "sent"
+  | "viewed"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "archived"
+  | "locked";
+
+export type DocCurrency = "PKR" | "USD" | "EUR" | "AED" | "GBP";
+
+export type DocSection = {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+};
+
+export type BusinessDocument = {
+  id: string;
+  type: BusinessDocType;
+  title: string;
+  description: string | null;
+  status: BusinessDocStatus;
+  client_id: string | null;
+  created_by: string | null;
+  assigned_to: string | null;
+  valid_until: string | null;
+  expiry_date: string | null;
+  currency: DocCurrency;
+  subtotal: number;
+  tax_rate: number;
+  discount: number;
+  total: number;
+  pricing_model: string;
+  sections: DocSection[];
+  metadata: Record<string, unknown>;
+  branding: Record<string, unknown>;
+  internal_notes: string | null;
+  rejection_reason: string | null;
+  pdf_url: string | null;
+  docx_url: string | null;
+  secure_token: string | null;
+  share_enabled: boolean;
+  client_viewed_at: string | null;
+  version_number: number;
+  parent_doc_id: string | null;
+  is_template: boolean;
+  template_name: string | null;
+  template_category: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BusinessDocumentWithRelations = BusinessDocument & {
+  client: { id: string; full_name: string; email: string; avatar_url?: string; company?: string } | null;
+  creator: { id: string; full_name: string; email: string } | null;
+  assignee: { id: string; full_name: string; email: string } | null;
+  line_items?: DocumentLineItem[];
+};
+
+export type DocumentLineItem = {
+  id: string;
+  document_id: string;
+  category: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total: number;
+  is_optional: boolean;
+  display_order: number;
+  notes: string | null;
+  created_at: string;
+};
+
+export type DocumentVersion = {
+  id: string;
+  document_id: string;
+  version_number: number;
+  snapshot: Record<string, unknown>;
+  change_notes: string | null;
+  created_by: string | null;
+  creator?: { id: string; full_name: string; email: string } | null;
+  created_at: string;
+};
+
+export type DocumentSignature = {
+  id: string;
+  document_id: string;
+  signer_role: "client" | "admin" | "hr" | "manager" | "director" | "witness";
+  signer_id: string | null;
+  signer_name: string;
+  signer_email: string | null;
+  signature_data: string | null;
+  signature_type: "drawn" | "typed" | "uploaded";
+  signed_at: string;
+  ip_address: string | null;
+  verified: boolean;
+  created_at: string;
+};
+
+export type DocumentComment = {
+  id: string;
+  document_id: string;
+  author_id: string | null;
+  author_name: string | null;
+  author_email: string | null;
+  content: string;
+  is_internal: boolean;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentAuditEntry = {
+  id: string;
+  document_id: string;
+  action: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_email: string | null;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+};
+
+export type DocumentTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: BusinessDocType;
+  category: string | null;
+  template_data: Record<string, unknown>;
+  thumbnail_url: string | null;
+  is_default: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BusinessDocStats = {
+  total: number;
+  draft: number;
+  review: number;
+  approved: number;
+  sent: number;
+  accepted: number;
+  rejected: number;
+  expired: number;
+  totalValue: number;
+  acceptedValue: number;
+  pendingValue: number;
+  conversionRate: number;
+};
+
+export const DOC_TYPE_LABELS: Record<BusinessDocType, string> = {
+  proposal: "Proposal",
+  quotation: "Quotation",
+  srs: "SRS Document",
+  brd: "Business Requirements (BRD)",
+  contract: "Contract",
+  nda: "NDA Agreement",
+  agreement: "Agreement",
+  scope_doc: "Scope of Work",
+  meeting_minutes: "Meeting Minutes",
+  purchase_order: "Purchase Order",
+  service_agreement: "Service Agreement",
+  project_plan: "Project Plan",
+  custom: "Custom Document",
+};
+
+export const DOC_STATUS_CONFIG: Record<BusinessDocStatus, { label: string; color: string; bg: string }> = {
+  draft:    { label: "Draft",     color: "text-slate-600",   bg: "bg-slate-100" },
+  review:   { label: "In Review", color: "text-amber-700",   bg: "bg-amber-100" },
+  approved: { label: "Approved",  color: "text-blue-700",    bg: "bg-blue-100" },
+  sent:     { label: "Sent",      color: "text-purple-700",  bg: "bg-purple-100" },
+  viewed:   { label: "Viewed",    color: "text-indigo-700",  bg: "bg-indigo-100" },
+  accepted: { label: "Accepted",  color: "text-emerald-700", bg: "bg-emerald-100" },
+  rejected: { label: "Rejected",  color: "text-red-700",     bg: "bg-red-100" },
+  expired:  { label: "Expired",   color: "text-orange-700",  bg: "bg-orange-100" },
+  archived: { label: "Archived",  color: "text-gray-600",    bg: "bg-gray-100" },
+  locked:   { label: "Locked",    color: "text-slate-700",   bg: "bg-slate-200" },
+};

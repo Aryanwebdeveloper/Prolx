@@ -15,6 +15,26 @@ async function getJsPDF() {
 // STAMP IMAGE LOADER
 // ============================================================
 let stampCache: string | null = null;
+let logoCache: string | null = null;
+
+async function loadLogoImage(): Promise<string | null> {
+  if (logoCache) return logoCache;
+  try {
+    const response = await fetch("/icon-512x512.png");
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        logoCache = reader.result as string;
+        resolve(logoCache);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 async function loadStampImage(): Promise<string | null> {
   if (stampCache) return stampCache;
@@ -62,7 +82,7 @@ export async function generateInvoicePDF(invoice: InvoiceWithItems): Promise<Blo
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Digital Agency | Software House", 15, 28);
-  doc.text("info@prolx.com | www.prolx.com", 15, 35);
+  doc.text("Ph: 03300356046 | prolxcontact@gmail.com | www.prolx.cloud", 15, 35);
 
   // INVOICE label top right
   doc.setFontSize(28);
@@ -707,4 +727,491 @@ function buildLetterBody(
     default:
       return salutation + (content.body || "") + "\n\nYours sincerely,";
   }
+}
+
+// ============================================================
+// ENTERPRISE PROPOSAL / DOCUMENT PDF GENERATOR
+// ============================================================
+import type { BusinessDocumentWithRelations } from "@/types/erp";
+
+export async function generateProposalPDF(docData: BusinessDocumentWithRelations): Promise<Blob> {
+  const { jsPDF } = await getJsPDF();
+  const { default: autoTable } = await import("jspdf-autotable");
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const W = 210;
+  const H = 297;
+  const teal = [13, 148, 136] as [number, number, number];
+  const dark = [15, 23, 42] as [number, number, number];
+  const gray = [100, 116, 139] as [number, number, number];
+  const lightGray = [248, 250, 252] as [number, number, number];
+
+  // 1. Cover Page
+  doc.setFillColor(...dark);
+  doc.rect(0, 0, W, H, "F");
+
+  // Draw Logo Image on Cover Page
+  const logoData = await loadLogoImage();
+  if (logoData) {
+    doc.addImage(logoData, "PNG", 20, 25, 28, 28);
+  }
+
+  // Cover Page Header Titles
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  doc.text("PROLX DIGITAL AGENCY", 20, 68);
+
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(45, 212, 191);
+  doc.text("Enterprise Business Operations Platform", 20, 76);
+
+  // Decorative Accent line
+  doc.setFillColor(...teal);
+  doc.rect(20, 84, 50, 2, "F");
+
+  // Proposal Main Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  const titleLines = doc.splitTextToSize(docData.title.toUpperCase(), W - 40);
+  doc.text(titleLines, 20, 110);
+
+  // Cover Page Accent Banner near bottom
+  doc.setFillColor(...teal);
+  doc.rect(0, H - 85, W, 4, "F");
+
+  // Client Details
+  if (docData.client) {
+    doc.setTextColor(45, 212, 191);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("PREPARED FOR:", 20, H - 65);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(docData.client.full_name, 20, H - 58);
+    if (docData.client.company) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(148, 163, 184);
+      doc.text(docData.client.company, 20, H - 52);
+    }
+  }
+
+  // Document Metadata
+  doc.setFontSize(9.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Document Reference: ${docData.id}`, 20, H - 35);
+  doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { dateStyle: "long" })}`, 20, H - 29);
+  doc.text(`Valid Until: ${docData.valid_until || "Upon Agreement"}`, 20, H - 23);
+
+  // Helper: Draw common headers and footers for internal pages
+  const drawPageDecorations = (pageNumber: number, totalPages: number) => {
+    // Header
+    doc.setFillColor(...dark);
+    doc.rect(0, 0, W, 18, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("PROLX DIGITAL AGENCY", 15, 11);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(148, 163, 184);
+    doc.text(docData.id, W - 15, 11, { align: "right" });
+
+    // Footer
+    doc.setFillColor(...lightGray);
+    doc.rect(0, H - 14, W, 14, "F");
+    doc.setTextColor(...gray);
+    doc.setFontSize(7.5);
+    doc.text("Ph: 03300356046 | prolxcontact@gmail.com | www.prolx.cloud | Confidential", 15, H - 6);
+    doc.text(`Page ${pageNumber} of ${totalPages}`, W - 15, H - 6, { align: "right" });
+  };
+
+  // Add actual content pages - Continuous Layout Flow
+  const contentSections = (docData.sections || []).filter(s => s.id !== "cover");
+  let currentPage = 1;
+  let currentY = H + 10; // Trigger new page for section 1
+
+  const checkNewPage = (neededHeight: number) => {
+    if (currentY + neededHeight > H - 18) {
+      doc.addPage();
+      currentPage++;
+      currentY = 28;
+    }
+  };
+
+  // ── HTML → PDF renderer ──────────────────────────────────────────
+  // safeText: strips non-WinAnsi unicode before any doc.text() call.
+  // jsPDF's built-in Helvetica (WinAnsi/cp1252) cannot encode → (U+2192) or ↓ (U+2193).
+  // These are detected and drawn as vector graphics instead.
+  const safeText = (s: string): string =>
+    s
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+      // Normalise every known arrow glyph / mangled jsPDF glyph variant to ASCII " -> "
+      .replace(/!\s*['""`?!]/g, " -> ")
+      .replace(/-->/g, " -> ").replace(/->/g, " -> ").replace(/=>/g, " -> ")
+      // Sentinel tokens for unicode arrows (handled as vector graphics by callers)
+      .replace(/→/g, "__HARROW__")
+      .replace(/↓/g, "__VARROW__")
+      // Strip remaining non-WinAnsi characters (code points > 255)
+      .replace(/[^\x00-\xFF]/g, "")
+      // Restore sentinel tokens as ASCII sequences that callers detect
+      .replace(/__HARROW__/g, " -> ")
+      .replace(/__VARROW__/g, " v ");
+
+  const stripTags = (s: string): string =>
+    s.replace(/<[^>]+>/g, "")
+     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+     .trim();
+
+  // Flow detectors (after safeText has been applied)
+  const isHFlow = (s: string) => (s.match(/ -> /g) || []).length >= 2;
+  const isVFlow = (s: string) => (s.match(/ v /g) || []).length >= 2 && !isHFlow(s);
+
+  // Draw horizontal process-flow card with vector arrows
+  const drawHFlow = (text: string) => {
+    const steps = text.split(" -> ").map(s => s.trim()).filter(Boolean);
+    if (steps.length < 2) return;
+    const rowH = 14;
+    checkNewPage(rowH + 8);
+    doc.setFillColor(240, 253, 250);
+    doc.setDrawColor(13, 148, 136);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(15, currentY, W - 30, rowH, 2, 2, "FD");
+    const cellW = (W - 30) / steps.length;
+    steps.forEach((step, idx) => {
+      const cx = 15 + idx * cellW;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42);
+      const sl = doc.splitTextToSize(step, cellW - 6);
+      const ty = currentY + rowH / 2 - (sl.length - 1) * 1.9;
+      sl.forEach((l: string, li: number) => doc.text(l, cx + cellW / 2, ty + li * 3.8, { align: "center" }));
+      if (idx < steps.length - 1) {
+        const ax = cx + cellW - 1.5;
+        const ay = currentY + rowH / 2;
+        doc.setDrawColor(13, 148, 136);
+        doc.setLineWidth(0.5);
+        doc.line(ax - 3, ay, ax, ay);
+        doc.setFillColor(13, 148, 136);
+        doc.triangle(ax, ay - 1.5, ax, ay + 1.5, ax + 2.5, ay, "F");
+      }
+    });
+    currentY += rowH + 4;
+  };
+
+  // Draw vertical flowchart with vector arrows
+  const drawVFlow = (text: string) => {
+    const steps = text.split(" v ").map(s => s.trim()).filter(Boolean);
+    if (steps.length < 2) return;
+    const stepH = 10;
+    checkNewPage(steps.length * (stepH + 7) + 4);
+    steps.forEach((step, idx) => {
+      doc.setFillColor(240, 253, 250);
+      doc.setDrawColor(13, 148, 136);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(30, currentY, W - 60, stepH, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(15, 23, 42);
+      doc.text(step, W / 2, currentY + stepH / 2 + 1.5, { align: "center" });
+      currentY += stepH;
+      if (idx < steps.length - 1) {
+        const ax = W / 2;
+        doc.setDrawColor(13, 148, 136);
+        doc.setLineWidth(0.5);
+        doc.line(ax, currentY, ax, currentY + 5);
+        doc.setFillColor(13, 148, 136);
+        doc.triangle(ax - 2, currentY + 4, ax + 2, currentY + 4, ax, currentY + 7, "F");
+        currentY += 7;
+      }
+    });
+    currentY += 4;
+  };
+
+  const renderHtmlToPdf = async (html: string) => {
+    if (!html?.trim()) return;
+
+    const normalised = html
+      .replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1")
+      .replace(/\r\n/g, "\n");
+
+    type Block =
+      | { type: "heading"; level: 1 | 2 | 3; text: string }
+      | { type: "paragraph"; html: string }
+      | { type: "ul"; items: string[] }
+      | { type: "ol"; items: string[] }
+      | { type: "table"; rows: string[][] }
+      | { type: "hr" }
+      | { type: "text"; text: string };
+
+    const blocks: Block[] = [];
+    let rem = normalised;
+
+    while (rem.length > 0) {
+      rem = rem.trim();
+      if (!rem) break;
+
+      // H1-H3
+      const hm = rem.match(/^<(h[1-3])[^>]*>([\s\S]*?)<\/\1>/i);
+      if (hm) { blocks.push({ type: "heading", level: parseInt(hm[1][1]) as 1|2|3, text: stripTags(hm[2]) }); rem = rem.slice(hm[0].length); continue; }
+
+      // UL
+      const um = rem.match(/^<ul[^>]*>([\s\S]*?)<\/ul>/i);
+      if (um) {
+        const li = [...um[1].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map(m => stripTags(m[1]));
+        blocks.push({ type: "ul", items: li.length > 0 ? li : um[1].split(/<\/li>/i).map(s => stripTags(s)).filter(Boolean) });
+        rem = rem.slice(um[0].length); continue;
+      }
+
+      // OL
+      const om = rem.match(/^<ol[^>]*>([\s\S]*?)<\/ol>/i);
+      if (om) {
+        const li = [...om[1].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map(m => stripTags(m[1]));
+        blocks.push({ type: "ol", items: li.length > 0 ? li : om[1].split(/<\/li>/i).map(s => stripTags(s)).filter(Boolean) });
+        rem = rem.slice(om[0].length); continue;
+      }
+
+      // TABLE
+      const tm = rem.match(/^<table[^>]*>([\s\S]*?)<\/table>/i);
+      if (tm) {
+        const rows: string[][] = [];
+        for (const row of [...tm[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]) {
+          const cells = [...row[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(c => stripTags(c[1]));
+          if (cells.length > 0) rows.push(cells);
+        }
+        if (rows.length > 0) blocks.push({ type: "table", rows });
+        rem = rem.slice(tm[0].length); continue;
+      }
+
+      // HR
+      const hrm = rem.match(/^<hr[^>]*\/?>/i);
+      if (hrm) { blocks.push({ type: "hr" }); rem = rem.slice(hrm[0].length); continue; }
+
+      // P
+      const pm = rem.match(/^<p[^>]*>([\s\S]*?)<\/p>/i);
+      if (pm) { const t = stripTags(pm[1]); if (t) blocks.push({ type: "paragraph", html: pm[1] }); rem = rem.slice(pm[0].length); continue; }
+
+      // BR
+      const brm = rem.match(/^<br\s*\/?>/i);
+      if (brm) { rem = rem.slice(brm[0].length); continue; }
+
+      // Fallback
+      const ni = rem.indexOf("<");
+      if (ni === -1) { const t = stripTags(rem).trim(); if (t) blocks.push({ type: "text", text: t }); rem = ""; }
+      else if (ni === 0) { const ci = rem.indexOf(">"); if (ci === -1) { rem = ""; break; } rem = rem.slice(ci + 1); }
+      else { const t = stripTags(rem.slice(0, ni)).trim(); if (t) blocks.push({ type: "text", text: t }); rem = rem.slice(ni); }
+    }
+
+    // ── Render blocks ────────────────────────────────────────────
+    for (const block of blocks) {
+      if (block.type === "heading") {
+        const fs = block.level === 1 ? 13 : block.level === 2 ? 11 : 10;
+        const ht = safeText(block.text);
+        checkNewPage(fs + 10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...dark);
+        doc.setFontSize(fs);
+        const hl = doc.splitTextToSize(ht, W - 30);
+        for (const line of hl) { checkNewPage(fs + 4); doc.text(line, 15, currentY); currentY += fs * 0.52; }
+        if (block.level <= 2) {
+          doc.setDrawColor(...teal); doc.setLineWidth(0.35);
+          doc.line(15, currentY + 1, W - 15, currentY + 1);
+          currentY += 5;
+        } else { currentY += 3; }
+
+      } else if (block.type === "paragraph" || block.type === "text") {
+        const rawText = block.type === "paragraph" ? block.html : block.text;
+        const isBold = /<strong[^>]*>|<b[^>]*>/i.test(rawText);
+        const pt = safeText(stripTags(rawText));
+        if (!pt) continue;
+        if (isHFlow(pt)) { drawHFlow(pt); continue; }
+        if (isVFlow(pt)) { drawVFlow(pt); continue; }
+        // Vision / quote callout
+        if (pt.toLowerCase().startsWith("our vision") || pt.startsWith('"') || pt.startsWith("\u201c")) {
+          const cl = doc.splitTextToSize(pt, W - 44);
+          const bh = cl.length * 5.2 + 8;
+          checkNewPage(bh + 6);
+          doc.setFillColor(248, 250, 252); doc.roundedRect(15, currentY, W - 30, bh, 2, 2, "F");
+          doc.setFillColor(...teal); doc.rect(15, currentY, 3, bh, "F");
+          doc.setFont("helvetica", "italic"); doc.setFontSize(9.5); doc.setTextColor(15, 23, 42);
+          let qy = currentY + 6;
+          for (const line of cl) { doc.text(line, 22, qy); qy += 5.2; }
+          currentY += bh + 5;
+          continue;
+        }
+        // Standard paragraph
+        doc.setFont("helvetica", isBold ? "bold" : "normal");
+        doc.setFontSize(9.5); doc.setTextColor(51, 65, 85);
+        const pl = doc.splitTextToSize(pt, W - 30);
+        for (const line of pl) { checkNewPage(5.5); doc.text(line, 15, currentY); currentY += 5; }
+        currentY += 2;
+
+      } else if (block.type === "ul") {
+        for (const item of block.items) {
+          if (!item.trim()) continue;
+          const si = safeText(item);
+          if (isHFlow(si)) { drawHFlow(si); continue; }
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(51, 65, 85);
+          const bl = doc.splitTextToSize(si, W - 36);
+          for (let i = 0; i < bl.length; i++) {
+            checkNewPage(5.5);
+            if (i === 0) { doc.setFillColor(...teal); doc.circle(18, currentY - 1.5, 1, "F"); }
+            doc.text(bl[i], i === 0 ? 22 : 26, currentY); currentY += 5;
+          }
+          currentY += 1;
+        }
+        currentY += 2;
+
+      } else if (block.type === "ol") {
+        for (let ni = 0; ni < block.items.length; ni++) {
+          const item = block.items[ni];
+          if (!item.trim()) continue;
+          const si = safeText(item);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(51, 65, 85);
+          const nl = doc.splitTextToSize(`${ni + 1}.  ${si}`, W - 36);
+          for (let i = 0; i < nl.length; i++) { checkNewPage(5.5); doc.text(nl[i], i === 0 ? 20 : 26, currentY); currentY += 5; }
+          currentY += 1;
+        }
+        currentY += 2;
+
+      } else if (block.type === "table") {
+        if (block.rows.length === 0) continue;
+        checkNewPage(30);
+        const sr = block.rows.map(row => row.map(c => safeText(c)));
+        autoTable(doc, {
+          startY: currentY,
+          head: [sr[0]],
+          body: sr.slice(1),
+          theme: "grid",
+          headStyles: { fillColor: teal, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+          bodyStyles: { fontSize: 8.5, textColor: dark },
+          alternateRowStyles: { fillColor: [245, 247, 250] },
+          margin: { left: 15, right: 15 },
+          styles: { cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+        });
+        // @ts-expect-error jsPDF custom attribute
+        currentY = (doc.lastAutoTable?.finalY ?? currentY + 20) + 8;
+
+      } else if (block.type === "hr") {
+        checkNewPage(8);
+        doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
+        doc.line(15, currentY, W - 15, currentY);
+        currentY += 7;
+      }
+    }
+  };
+
+  // ── Render content sections ──────────────────────────────────────
+  for (const sec of contentSections) {
+    checkNewPage(18);
+
+    // Section title bar
+    doc.setTextColor(...dark);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text(sec.title, 15, currentY);
+    currentY += 3.5;
+    doc.setDrawColor(...teal);
+    doc.setLineWidth(0.4);
+    doc.line(15, currentY, W - 15, currentY);
+    currentY += 6;
+
+    // Rich HTML content
+    if ((sec.content || "").trim()) {
+      await renderHtmlToPdf(sec.content || "");
+    }
+
+    // Pricing table (only for pricing section)
+    if (sec.id === "pricing" && docData.line_items && docData.line_items.length > 0) {
+      currentY += 3;
+      checkNewPage(40);
+      const items = docData.line_items.filter(i => i.description);
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Category", "Description", "Qty", "Price", "Total"]],
+        body: items.map(item => [
+          (item.category || "item").toUpperCase(),
+          item.description,
+          String(item.quantity || 1),
+          `${docData.currency || "PKR"} ${Number(item.unit_price || 0).toLocaleString()}`,
+          `${docData.currency || "PKR"} ${(Number(item.quantity || 1) * Number(item.unit_price || 0)).toLocaleString()}`
+        ]),
+        theme: "grid",
+        headStyles: { fillColor: teal, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+        bodyStyles: { fontSize: 8, textColor: dark },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 15, right: 15 }
+      });
+      // @ts-expect-error jsPDF custom attribute
+      currentY = (doc.lastAutoTable.finalY || currentY + 30) + 7;
+
+      checkNewPage(25);
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...gray);
+
+      const subtotal = items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.unit_price || 0)), 0);
+      const taxRate = Number(docData.tax_rate || 0);
+      const discount = Number(docData.discount || 0);
+      const taxAmt = (subtotal * taxRate) / 100;
+      const total = subtotal + taxAmt - discount;
+
+      doc.text("SUBTOTAL:", W - 85, currentY);
+      doc.text(`${docData.currency || "PKR"} ${subtotal.toLocaleString()}`, W - 15, currentY, { align: "right" });
+      currentY += 4.5;
+      if (taxRate > 0) {
+        doc.text(`TAX (${taxRate}%):`, W - 85, currentY);
+        doc.text(`${docData.currency || "PKR"} ${taxAmt.toLocaleString()}`, W - 15, currentY, { align: "right" });
+        currentY += 4.5;
+      }
+      if (discount > 0) {
+        doc.text("DISCOUNT:", W - 85, currentY);
+        doc.text(`- ${docData.currency || "PKR"} ${discount.toLocaleString()}`, W - 15, currentY, { align: "right" });
+        currentY += 4.5;
+      }
+      doc.setFontSize(10);
+      doc.setTextColor(...teal);
+      doc.text("TOTAL INVESTMENT:", W - 85, currentY);
+      doc.text(`${docData.currency || "PKR"} ${total.toLocaleString()}`, W - 15, currentY, { align: "right" });
+      currentY += 8;
+    }
+
+    // Signature block (only for signature section)
+    if (sec.id === "signature") {
+      currentY += 4;
+      checkNewPage(35);
+      const stampData = await loadStampImage();
+      doc.setDrawColor(...gray);
+      doc.setLineWidth(0.3);
+      doc.line(15, currentY + 15, 85, currentY + 15);
+      doc.line(W - 85, currentY + 15, W - 15, currentY + 15);
+      doc.setFontSize(8);
+      doc.setTextColor(...gray);
+      doc.text("Client Authorized Signatory", 15, currentY + 20);
+      doc.text("Prolx Digital Agency Authorized Seal", W - 85, currentY + 20);
+      if (stampData) {
+        doc.addImage(stampData, "PNG", W - 75, currentY - 5, 25, 25);
+      }
+      currentY += 28;
+    }
+
+    currentY += 6; // space after each section
+  } // end for (const sec of contentSections)
+
+  // Draw decorations for all pages (excluding cover page 1)
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 2; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawPageDecorations(i, totalPages);
+  }
+
+  return doc.output("blob");
 }

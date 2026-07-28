@@ -51,6 +51,7 @@ import GlobalSearch from "@/components/ui/global-search";
 import NotificationBell from "@/components/ui/notification-bell";
 import { getUnreadMessagesCount } from "@/app/communication-actions";
 import AcademyAdminPanel from "@/components/admin/academy-panel";
+import BusinessDocsPanel from "@/components/admin/business-docs-panel";
 import { GraduationCap } from "lucide-react";
 
 const statsCards = [
@@ -106,6 +107,7 @@ const getNavItems = (role: string) => {
       { icon: UserCog, label: "User Access", id: "users" },
       { icon: Award, label: "Certificates", id: "certificates" },
       { icon: Receipt, label: "Invoices", id: "invoices" },
+      { icon: FileText, label: "Business Documents", id: "business-docs" },
       { icon: FileSignature, label: "Letters", id: "letters" },
       { icon: Clock, label: "Attendance", id: "attendance" },
       { icon: Bell, label: "Announcements", id: "announcements" },
@@ -137,6 +139,7 @@ const getNavItems = (role: string) => {
     baseItems.push(
       { icon: Briefcase, label: "Projects", id: "portfolio" }, // Map to portfolio manager
       { icon: Receipt, label: "Invoices", id: "invoices" },
+      { icon: FileText, label: "Business Documents", id: "business-docs" },
     );
   }
 
@@ -144,6 +147,7 @@ const getNavItems = (role: string) => {
   if (isFinance) {
     baseItems.push(
       { icon: Receipt, label: "Invoices", id: "invoices" },
+      { icon: FileText, label: "Business Documents", id: "business-docs" },
     );
   }
 
@@ -359,10 +363,11 @@ export default function AdminDashboard({ user, initialRole = "admin" }: { user: 
           {active === "interviews" && <InterviewManagementPanel />}
           {active === "email-logs" && <EmailLogsPanel />}
           {active === "users" && <UsersManagerPanel />}
-          {active === "certificates" && <CertificateManagerPanel />}
-          {active === "invoices" && <InvoiceManagerPanel />}
-          {active === "letters" && <LetterGeneratorPanel />}
-          {active === "attendance" && <AttendanceManagerPanel />}
+           {active === "certificates" && <CertificateManagerPanel />}
+           {active === "invoices" && <InvoiceManagerPanel />}
+           {active === "business-docs" && <BusinessDocsPanel />}
+           {active === "letters" && <LetterGeneratorPanel />}
+           {active === "attendance" && <AttendanceManagerPanel />}
           {active === "announcements" && <AnnouncementsManagerPanel />}
           {active === "settings" && <SettingsPanel />}
           {active === "team-chat" && <TeamChatPanel user={user} userRole={role} />}
