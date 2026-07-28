@@ -9,9 +9,10 @@ import {
   Monitor, Banknote, CheckCircle, ArrowRight, ArrowLeft, ChevronRight,
   GiftIcon, MessageSquare, Award, Sparkles
 } from "lucide-react";
-import { createEnrollment } from "@/app/academy-actions";
+import { createEnrollment, getAcademyCourses } from "@/app/academy-actions";
+import { useEffect } from "react";
 
-const COURSES = [
+const FALLBACK_COURSES = [
   "Full Stack Web Development",
   "UI/UX Design Masterclass",
   "Digital Marketing Pro",
@@ -44,6 +45,21 @@ function EnrollContent() {
   const [pending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState<{ enrollment_id: string; student_id: string } | null>(null);
   const [error, setError] = useState("");
+  const [dbCourses, setDbCourses] = useState<{ title: string; slug: string }[]>([]);
+
+  useEffect(() => {
+    async function fetchCourses() {
+      const data = await getAcademyCourses();
+      if (data && data.length > 0) {
+        setDbCourses(data.map((c: any) => ({ title: c.title, slug: c.slug })));
+      }
+    }
+    fetchCourses();
+  }, []);
+
+  const courseList = dbCourses.length > 0
+    ? dbCourses.map(c => c.title)
+    : FALLBACK_COURSES;
 
   const [form, setForm] = useState({
     full_name: "",
@@ -239,7 +255,7 @@ function EnrollContent() {
                     <BookOpen size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <select value={form.course} onChange={e => set("course", e.target.value)} className="w-full pl-9 pr-4 py-3 bg-[#F8FAFC] border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#0D9488] transition-all appearance-none">
                       <option value="">Choose a course</option>
-                      {COURSES.map(c => <option key={c}>{c}</option>)}
+                      {courseList.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
