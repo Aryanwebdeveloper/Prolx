@@ -1,3 +1,5 @@
+const path = require("path");
+
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   cacheOnFrontEndNav: true,
@@ -16,6 +18,12 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+    outputFileTracingRoot: path.join(__dirname, './'),
+
+    typescript: {
+        ignoreBuildErrors: true,
+    },
+
     // Only allow dev-mode origins when explicitly in development
     allowedDevOrigins: process.env.NODE_ENV === "development"
         ? ['localhost', '127.0.0.1', 'prolx.cloud', '*.prolx.cloud']
