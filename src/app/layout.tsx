@@ -75,8 +75,8 @@ export default function RootLayout({
       <body className={plusJakarta.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          forcedTheme="light"
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           {children}

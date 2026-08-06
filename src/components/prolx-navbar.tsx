@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "../../supabase/client";
 
 const navLinks = [
+  { label: "🇵🇰 14 Aug Deals", href: "/deals/14-august" },
   { label: "Services", href: "/services" },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Academy", href: "/academy" },

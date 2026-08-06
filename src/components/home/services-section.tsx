@@ -60,7 +60,7 @@ function ServiceCard({ icon: Icon, title, desc, gradient, glow, badge, index }: 
   return (
     <StaggerItem>
       <div
-        className="group relative bg-white rounded-2xl p-7 border border-[#E2E8F0] hover:border-transparent hover:-translate-y-2 transition-all duration-400 cursor-pointer overflow-hidden h-full"
+        className="group relative glass-card rounded-2xl p-7 hover:border-transparent hover:-translate-y-2 transition-all duration-400 cursor-pointer overflow-hidden h-full"
         style={{
           boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
           transition: "transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease",
@@ -96,12 +96,12 @@ function ServiceCard({ icon: Icon, title, desc, gradient, glow, badge, index }: 
 
         {/* Content */}
         <h3
-          className="text-lg font-bold text-[#0F172A] mb-2.5"
+          className="text-lg font-bold text-white mb-2.5"
           style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
         >
           {title}
         </h3>
-        <p className="text-sm text-[#64748B] leading-relaxed mb-5">{desc}</p>
+        <p className="text-sm text-[#94A3B8] leading-relaxed mb-5">{desc}</p>
 
         {/* Learn more arrow */}
         <Link
@@ -117,22 +117,22 @@ function ServiceCard({ icon: Icon, title, desc, gradient, glow, badge, index }: 
 
 export default function ServicesSection() {
   return (
-    <section className="py-24 bg-[#F8FAFC] relative overflow-hidden">
+    <section className="py-24 bg-[#0A0F1E] relative overflow-hidden">
       {/* Subtle mesh background */}
       <div className="absolute inset-0 dot-grid opacity-30 pointer-events-none" />
 
       {/* Glowing orb top-right */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#0D9488]/8 blur-[80px] pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-[#7C3AED]/6 blur-[80px] pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#0D9488]/12 blur-[80px] pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-[#7C3AED]/10 blur-[80px] pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <ScrollReveal direction="up" className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-[#CCFBF1] text-[#0D9488] text-sm font-semibold px-4 py-2 rounded-full mb-5 font-mono">
+          <div className="inline-flex items-center gap-2 bg-white/5 border border-[#0D9488]/30 text-[#2DD4BF] text-sm font-semibold px-4 py-2 rounded-full mb-5 font-mono">
             What We Do
           </div>
           <h2
-            className="text-4xl md:text-5xl font-bold text-[#0F172A] mb-5"
+            className="text-4xl md:text-5xl font-bold text-white mb-5"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
           >
             Services Built for{" "}
@@ -143,7 +143,7 @@ export default function ServicesSection() {
               Impact
             </em>
           </h2>
-          <p className="text-[#64748B] text-lg max-w-xl mx-auto leading-relaxed">
+          <p className="text-[#94A3B8] text-lg max-w-xl mx-auto leading-relaxed">
             From design to deployment — we cover the full digital spectrum so you
             can focus on growing your business.
           </p>

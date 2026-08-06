@@ -52,7 +52,8 @@ import NotificationBell from "@/components/ui/notification-bell";
 import { getUnreadMessagesCount } from "@/app/communication-actions";
 import AcademyAdminPanel from "@/components/admin/academy-panel";
 import BusinessDocsPanel from "@/components/admin/business-docs-panel";
-import { GraduationCap } from "lucide-react";
+import DealsCampaignsPanel from "@/components/admin/deals-campaigns-panel";
+import { GraduationCap, Tag } from "lucide-react";
 
 const statsCards = [
   { label: "Total Visitors", value: "12,847", trend: "+18%", icon: Eye, color: "teal" },
@@ -88,6 +89,7 @@ const getNavItems = (role: string) => {
   if (isAdmin) {
     baseItems.push(
       { icon: GraduationCap, label: "Prolx Academy", id: "academy" },
+      { icon: Tag, label: "Deals & Campaigns", id: "deals" },
       { icon: Users, label: "Employee Directory", id: "employees" },
       { icon: Clock, label: "Leave Management", id: "leave-management" },
       { icon: PlusCircle, label: "Internal Applications", id: "internal-applications" },
@@ -345,6 +347,7 @@ export default function AdminDashboard({ user, initialRole = "admin" }: { user: 
           ) : (
             <>
           {active === "overview" && <OverviewPanel onNavigate={(tab) => setActive(tab)} />}
+          {active === "deals" && <DealsCampaignsPanel />}
           {active === "academy" && <AcademyAdminPanel />}
           {active === "my-account" && <MyAccountPanel />}
 
