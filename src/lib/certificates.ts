@@ -1,41 +1,57 @@
 // Certificate utility functions and configurations
 import { customAlphabet } from 'nanoid';
 
-// Short, clean, professional ID: PROLX- + 6 uppercase alphanumeric
-// e.g. PROLX-4F92A1, PROLX-260701, PROLX-A83D21
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
-export function generateCertificateId(): string {
+
+// Formats:
+// 1. Configurable sequence format: PRLX-CERT-26-000001
+// 2. Short random format: PROLX-4F92A1
+export function generateCertificateId(prefix = 'PRLX-CERT', sequence?: number): string {
+  const year = new Date().getFullYear().toString().slice(-2);
+  if (sequence !== undefined) {
+    const seqStr = String(sequence).padStart(6, '0');
+    return `${prefix}-${year}-${seqStr}`;
+  }
   return `PROLX-${nanoid()}`;
 }
 
 export type CertificateType =
+  | 'course_completion'
+  | 'training_completion'
+  | 'internship_completion'
+  | 'participation'
+  | 'achievement'
+  | 'appreciation'
   | 'excellence'
   | 'opa'
+  | 'contributor'
+  | 'project_completion'
+  | 'team_player'
+  | 'invitation_award'
+  | 'employee_recognition'
+  | 'leadership_excellence'
+  | 'digital_marketing'
   | 'internship'
   | 'internship_wordpress'
   | 'internship_social'
-  | 'internship_video'
-  | 'internship_graphics';
+  | 'internship_video';
 
 export interface CertificateConfig {
   type: CertificateType;
   displayName: string;
   templatePath: string;
   namePos: { x: number; y: number; fontSize: number; color: string };
-  // idPos: placed INLINE with the "Certificate ID:" label (same Y, right after label text)
   idPos: { x: number; y: number; fontSize: number; color: string };
-  // datePos: placed INLINE with the "Issued on:" label (same Y, right after label text)
   datePos: { x: number; y: number; fontSize: number; color: string };
   qrPos: { x: number; y: number; size: number };
 }
 
 // ─── Coordinate Reference (A4 Landscape = 297mm × 210mm) ───────────────────
-// Bottom row of template:
-//   "Certificate ID:" label  → baked in PNG at X≈32, Y≈140 (baseline)
-//   Our cert ID value        → same Y, starts right after label text: X≈84, Y≈140
-//   QR code block            → X=138, Y=133, 21mm²
-//   "Issued on:" label       → baked in PNG at X≈193, Y≈140 (baseline)
-//   DD / MM / YYY placeholder → masked entirely; our date at X≈214, same Y
+// Template grid matching CourseresUIUXCertificate.png:
+//   Name area             → centered at X=148.5, Y=89
+//   "Certificate ID:"     → X=30, Y=140
+//   QR code block         → X=138.5, Y=133, 21mm²
+//   "Issued on:"          → X=165, Y=140
 // ────────────────────────────────────────────────────────────────────────────
 
 const SHARED = {
@@ -46,41 +62,68 @@ const SHARED = {
 };
 
 export const CERTIFICATE_CONFIGS: Record<CertificateType, CertificateConfig> = {
-  excellence:           { type: 'excellence',           displayName: 'Certificate of Excellence',              templatePath: '/caertificate_Excellent-01.png',                        ...SHARED },
-  opa:                  { type: 'opa',                  displayName: 'Outstanding Performance Award',           templatePath: '/caertificate_OPA-01.png',                              ...SHARED },
-  internship:           { type: 'internship',           displayName: 'Internship Certificate (Default)',        templatePath: '/intership-caertificate_AllField_Interships-01.png',    ...SHARED },
-  internship_wordpress: { type: 'internship_wordpress', displayName: 'WordPress Internship Certificate',       templatePath: '/intership_caertificate_wordpress-01.png',               ...SHARED },
-  internship_social:    { type: 'internship_social',    displayName: 'Social Media Management Internship',     templatePath: '/Intership-caertificate_SocialMEdiaManagers-01.png',    ...SHARED },
-  internship_video:     { type: 'internship_video',     displayName: 'Video Editing Internship Certificate',   templatePath: '/intership-caertificate_VideoEditing-01.png',            ...SHARED },
-  internship_graphics:  { type: 'internship_graphics',  displayName: 'Graphic Designer Internship',            templatePath: '/_intershipcaertificate_graphic_desginer-01.png',       ...SHARED },
+  // ── Academy / Completion ────────────────────────────────────────────────
+  course_completion:     { type: 'course_completion',     displayName: 'Certificate of Completion',              templatePath: '/CourseresUIUXCertificate.png',                             ...SHARED },
+  training_completion:   { type: 'training_completion',   displayName: 'Training Completion Certificate',        templatePath: '/caertificate OF TRENNING COMPTION-01.png',                 ...SHARED },
+  internship_completion: { type: 'internship_completion', displayName: 'Internship Completion Certificate',      templatePath: '/caertificate OF INTERSHIP COMPITATION for all.png',        ...SHARED },
+  participation:         { type: 'participation',         displayName: 'Certificate of Participation',           templatePath: '/CourseresUIUXCertificate.png',                             ...SHARED },
+  achievement:           { type: 'achievement',           displayName: 'Certificate of Achievement',             templatePath: '/caertificate OF ACHIVEment.png',                           ...SHARED },
+  appreciation:          { type: 'appreciation',          displayName: 'Certificate of Appreciation',            templatePath: '/caertificate OF APPrication.png',                          ...SHARED },
+  // ── Award / Recognition ──────────────────────────────────────────────────
+  excellence:            { type: 'excellence',            displayName: 'Certificate of Excellence',              templatePath: '/caertificate OF EXCELLENCE-01.png',                       ...SHARED },
+  opa:                   { type: 'opa',                   displayName: 'Outstanding Performance Award',           templatePath: '/caertificate OF outstaniding awar PERFORMANCE-01.png',    ...SHARED },
+  contributor:           { type: 'contributor',           displayName: 'Certificate of Contributor',             templatePath: '/caertificate OF CONTRIBUTER-01.png',                       ...SHARED },
+  project_completion:    { type: 'project_completion',    displayName: 'Certificate of Project Completion',      templatePath: '/caertificate OF PROJECT COM-01.png',                       ...SHARED },
+  team_player:           { type: 'team_player',           displayName: 'Certificate of Team Player',             templatePath: '/caertificate OF TEAM PLAYER-01.png',                       ...SHARED },
+  invitation_award:      { type: 'invitation_award',      displayName: 'Certificate of Invitation Award',        templatePath: '/caertificate OF invitation AWARD-01.png',                  ...SHARED },
+  employee_recognition:  { type: 'employee_recognition',  displayName: 'Employee Recognition Certificate',       templatePath: '/caertificate OF EMPLOY recongination.png',                 ...SHARED },
+  leadership_excellence: { type: 'leadership_excellence', displayName: 'Leadership Excellence Certificate',      templatePath: '/caertificate OF LEADERship excucation EXC-01.png',         ...SHARED },
+  digital_marketing:     { type: 'digital_marketing',     displayName: 'Digital Marketing Certificate',          templatePath: '/caertificate DEGITAL Marketing.png',                       ...SHARED },
+  // ── Legacy Internships ────────────────────────────────────────────────────
+  internship:            { type: 'internship',            displayName: 'Graphic Design Internship',              templatePath: '/caertificateGD-01.png',                                    ...SHARED },
+  internship_wordpress:  { type: 'internship_wordpress',  displayName: 'WordPress Internship Certificate',       templatePath: '/caertificateWP-01.png',                                    ...SHARED },
+  internship_social:     { type: 'internship_social',     displayName: 'Social Media Management Internship',     templatePath: '/caertificateSOCIAL-01.png',                                ...SHARED },
+  internship_video:      { type: 'internship_video',      displayName: 'Video Editing Internship Certificate',   templatePath: '/caertificateVEDIO-01.png',                                 ...SHARED },
 };
 
-// Always use production domain so QR codes work when scanned
 export function getCertVerificationUrl(certId: string): string {
-  return `https://prolx.cloud/certificates/${certId}`;
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/verify-certificate/${certId.trim().toUpperCase()}`;
+  }
+  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://prolx.cloud';
+  return `${domain}/verify-certificate/${certId.trim().toUpperCase()}`;
 }
 
 export function formatCertDate(dateStr: string | null | undefined): string {
   if (!dateStr) return 'N/A';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
-// Format date for certificate PDF: "06 July 2026"
+// Format date for certificate PDF: "03 September 2026"
 export function formatCertDateFull(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  const day   = String(d.getDate()).padStart(2, '0');
-  const month = d.toLocaleString('en-US', { month: 'long' });
-  const year  = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  if (!dateStr) return 'N/A';
+  try {
+    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00');
+    const day   = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('en-US', { month: 'long' });
+    const year  = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 export function getCertStatus(status: string, expiryDate?: string | null): 'active' | 'inactive' | 'expired' | 'revoked' {
   if (status === 'revoked')  return 'revoked';
-  if (status === 'inactive') return 'inactive';
+  if (status === 'inactive' || status === 'draft' || status === 'cancelled') return 'inactive';
   if (expiryDate && new Date(expiryDate) < new Date()) return 'expired';
-  return status as 'active' | 'inactive' | 'expired' | 'revoked';
+  return 'active';
 }

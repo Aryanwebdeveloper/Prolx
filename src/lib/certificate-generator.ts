@@ -18,54 +18,58 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   });
 }
 
-interface GenerateParams {
-  type: CertificateType;
+export interface GenerateParams {
+  type?: CertificateType | string;
   recipientName: string;
+  courseTitle?: string;
+  courseDuration?: string;
+  startDate?: string;
+  completionDate?: string;
   certId: string;
   issueDate: string;
   internshipField?: string;
   verificationUrl: string;
+  customBodyText?: string;
+  templateUrl?: string;
 }
 
 export async function generateCertificatePDF({
-  type,
+  type = 'course_completion',
   recipientName,
+  courseTitle,
+  courseDuration,
+  startDate,
+  completionDate,
   certId,
   issueDate,
+  internshipField,
   verificationUrl,
+  customBodyText,
+  templateUrl,
 }: GenerateParams): Promise<Blob> {
   const jsPDF  = await getJsPDF();
-  const config = CERTIFICATE_CONFIGS[type];
-  if (!config) throw new Error(`Invalid certificate type: ${type}`);
+  const certType = (type as CertificateType) in CERTIFICATE_CONFIGS ? (type as CertificateType) : 'course_completion';
+  const config = CERTIFICATE_CONFIGS[certType];
 
   // A4 Landscape: 297mm × 210mm
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-  // ── 1. Draw full-bleed template background ────────────────────────────────
-  const imgBase64 = await getBase64ImageFromUrl(config.templatePath);
-  doc.addImage(imgBase64, 'PNG', 0, 0, 297, 210);
+  // ── 1. Draw template background ──────────────────────────────────────────
+  const bgUrl = templateUrl || config.templatePath || '/CourseresUIUXCertificate.png';
+  try {
+    const imgBase64 = await getBase64ImageFromUrl(bgUrl);
+    doc.addImage(imgBase64, 'PNG', 0, 0, 297, 210);
+  } catch (e) {
+    console.warn("Could not load background template image, using solid fallback", e);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 297, 210, 'F');
+  }
 
-  // ── 2. White masking rectangles — erase ALL baked-in placeholder text ─────
+  // ── 2. White backing for QR code block only ──────────────────────────────
   doc.setFillColor(255, 255, 255);
-
-  // A) "ENTER NAME" zone — Y 77 → 91
-  doc.rect(50, 77, 197, 14, 'F');
-
-  // B) FULL Certificate ID zone — masks "Certificate ID:" label + dotted underline + value area
-  //    X=28→138 (110mm), Y=131→145 (14mm)
-  //    We redraw the label + value ourselves (step 5 below)
-  doc.rect(28, 131, 110, 14, 'F');
-
-  // C) FULL date zone — masks "Issued on:" label + "DD / MM / YYY" + underlines
-  //    X=163→248 (85mm), Y=132→144 (12mm)
-  //    We redraw label + value ourselves (step 7 below)
-  doc.rect(163, 132, 85, 12, 'F');
-
-  // D) QR placeholder — expanded to catch all black border/dot artifacts
-  //    X=130→165 (35mm), Y=128→162 (34mm)
   doc.rect(130, 128, 35, 34, 'F');
 
-  // ── 3. Dynamic QR Code ────────────────────────────────────────────────────
+  // ── 3. Render Dynamic QR Code ─────────────────────────────────────────────
   const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
     margin: 1,
     width: 250,
@@ -73,48 +77,72 @@ export async function generateCertificatePDF({
   });
   doc.addImage(qrDataUrl, 'PNG', config.qrPos.x, config.qrPos.y, config.qrPos.size, config.qrPos.size);
 
-  // ── 4. Recipient Name (centred) ───────────────────────────────────────────
+  // ── 4. Recipient Name (Centered & Auto-Scaled) ───────────────────────────
   doc.setFont('helvetica', 'bold');
   let nameFontSize = config.namePos.fontSize;
+  // Dynamic scaling: If name length exceeds 22 chars, scale down font size gracefully
   if (recipientName.length > 22) {
-    nameFontSize = Math.max(18, nameFontSize - (recipientName.length - 22) * 0.6);
+    nameFontSize = Math.max(16, nameFontSize - (recipientName.length - 22) * 0.55);
   }
   doc.setFontSize(nameFontSize);
   doc.setTextColor(config.namePos.color);
   doc.text(recipientName, config.namePos.x, config.namePos.y, { align: 'center' });
 
-  // ── 5. "Certificate ID:" label (re-drawn) + cert ID value on SAME LINE ───
-  //    Label: helvetica normal 8pt dark gray → matches template style
-  //    Value: courier bold 10pt teal → clearly distinct, professional
+  // ── 5. Optional Custom / Dynamic Body Text Overlay ───────────────────────
+  // If customBodyText or specific course/dates provided, render formatted text
+  if (customBodyText || courseTitle) {
+    const displayCourse = courseTitle || internshipField || "Web & Graphic Design";
+    const durationStr = courseDuration ? ` ${courseDuration}` : "";
+    const startStr = startDate ? formatCertDateFull(startDate) : "";
+    const endStr = completionDate ? formatCertDateFull(completionDate) : formatCertDateFull(issueDate);
+    const dateRangeStr = (startStr && endStr) ? `conducted from ${startStr} to ${endStr}` : `completed on ${endStr}`;
+
+    const bodyText = customBodyText ||
+      `This certificate is proudly presented in recognition of successfully completing the${durationStr} course in ${displayCourse}, demonstrating dedication, creativity, and practical skills. The course was ${dateRangeStr}, covering essential concepts, tools, and practical projects.`;
+
+    // Mask placeholder text area cleanly if replacing baked text
+    doc.setFillColor(255, 255, 255);
+    // Cover the middle paragraph zone between Y=104 and Y=124
+    doc.rect(32, 105, 233, 20, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor('#334155');
+
+    // Split text into lines spanning 220mm
+    const lines = doc.splitTextToSize(bodyText, 220);
+    doc.text(lines, 148.5, 110, { align: 'center' });
+  }
+
+  // ── 6. Certificate ID & Issued Date Metadata Grid ────────────────────────
+  // Certificate ID (Left alignment metadata)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor('#374151');
+  doc.setTextColor('#475569');
   doc.text('Certificate ID:', 30, 140);
 
-  // "Certificate ID:" at 8pt ≈ 30mm wide → value starts at X = 30 + 30 + 2 = 62
   doc.setFont('courier', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(config.idPos.color);   // template teal
+  doc.setTextColor(config.idPos.color);   // template teal #009B8E
   doc.text(certId, 64, 140);
 
-  // ── 6. Draw underline below the cert ID row ───────────────────────────────
+  // Draw line under cert ID
   doc.setDrawColor('#009B8E');
   doc.setLineWidth(0.3);
   doc.line(30, 142, 135, 142);
 
-  // ── 7. "Issued on:" label (re-drawn) + date value on SAME LINE ───────────
+  // Issued Date (Right alignment metadata)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor('#374151');
+  doc.setTextColor('#475569');
   doc.text('Issued on:', 165, 140);
 
-  // "Issued on:" at 8pt ≈ 24mm wide → date value starts at X = 165 + 24 + 2 = 191
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(config.datePos.color);
   doc.text(formatCertDateFull(issueDate), 191, 140);
 
-  // ── 8. Draw underline below the date row ─────────────────────────────────
+  // Draw line under date
   doc.setDrawColor('#009B8E');
   doc.setLineWidth(0.3);
   doc.line(165, 142, 260, 142);

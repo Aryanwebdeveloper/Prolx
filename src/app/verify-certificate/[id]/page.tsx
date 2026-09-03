@@ -9,12 +9,12 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   return {
-    title: `Certificate ${id} Verification | Prolx Digital Agency`,
-    description: `Verify official certificate ${id} issued by Prolx Digital Agency & Academy.`,
+    title: `Verify Certificate ${id} | Prolx Academy`,
+    description: `Official public verification portal for Prolx Digital Agency & Prolx Academy completion certificate ${id}.`,
   };
 }
 
-export default async function LegacyCertificateVerificationPage({ params }: Props) {
+export default async function VerifyCertificateIdPage({ params }: Props) {
   const { id } = await params;
   const { found, certificate } = await verifyCertificate(id);
 

@@ -502,19 +502,18 @@ export default function CertificateManagerPanel() {
                 </select>
               </div>
 
-              {/* Internship Field (Show conditionally) */}
-              {form.certificate_type.startsWith('internship') && (
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Internship Field / Specialization</label>
-                  <input
-                    type="text"
-                    value={form.internship_field}
-                    onChange={e => setForm(f => ({ ...f, internship_field: e.target.value }))}
-                    placeholder="e.g. Full Stack Web Development (or leave empty for default)"
-                    className="w-full px-3 py-2 text-xs rounded border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#0D9488] bg-transparent"
-                  />
-                </div>
-              )}
+              {/* Specialization / Notes — shown for all certificate types */}
+              <div>
+                <label className="block text-xs font-semibold mb-1">Specialization / Notes <span className="text-slate-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={form.internship_field}
+                  onChange={e => setForm(f => ({ ...f, internship_field: e.target.value }))}
+                  placeholder={form.certificate_type.startsWith('internship') ? 'e.g. Full Stack Web Development' : 'e.g. Q2 2026 — Best Project Lead'}
+                  className="w-full px-3 py-2 text-xs rounded border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#0D9488] bg-transparent"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Additional context shown in the certificate record (not printed on the PDF).</p>
+              </div>
 
               {/* Issue Date */}
               <div>
