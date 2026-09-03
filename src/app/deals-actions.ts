@@ -53,8 +53,8 @@ const DEFAULT_14_AUGUST_CAMPAIGN: DealCampaign = {
   countdown_end_date: "2026-08-15T00:00:00.000Z",
   total_slots: 20,
   available_slots: 7,
-  is_active: true,
-  is_featured: true,
+  is_active: false,
+  is_featured: false,
   theme_config: {
     primaryColor: "#006633",
     accentColor: "#10B981",

@@ -65,22 +65,85 @@ export async function generateCertificatePDF({
     doc.rect(0, 0, 297, 210, 'F');
   }
 
-  // ── 2. White backing for QR code block only ──────────────────────────────
-  doc.setFillColor(255, 255, 255);
-  doc.rect(130, 128, 35, 34, 'F');
-
-  // ── 3. Render Dynamic QR Code ─────────────────────────────────────────────
+  // Generate dynamic QR Code for all certificate types
   const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
     margin: 1,
     width: 250,
     color: { dark: '#0F172A', light: '#FFFFFF' },
   });
+
+  // ── COURSE COMPLETION CERTIFICATE (SPECIFIC DESIGN) ──────────────────────
+  if (certType === 'course_completion') {
+    // 1. Draw solid white rect background to completely hide pre-printed sample QR on template image
+    doc.setFillColor(255, 255, 255);
+    doc.rect(130.0, 144.0, 37, 36, 'F');
+
+    // 2. Dynamic QR Code overlay precisely centered inside template QR ribbon frame
+    doc.addImage(qrDataUrl, 'PNG', config.qrPos.x, config.qrPos.y, config.qrPos.size, config.qrPos.size);
+
+    // 2. Recipient Name (Centered & Scaled in designated area below ribbon)
+    doc.setFont('helvetica', 'bold');
+    let nameFontSize = 28;
+    if (recipientName.length > 35) {
+      nameFontSize = 14;
+    } else if (recipientName.length > 25) {
+      nameFontSize = 18;
+    } else if (recipientName.length > 18) {
+      nameFontSize = 23;
+    }
+    doc.setFontSize(nameFontSize);
+    doc.setTextColor(config.namePos.color || '#0F172A');
+    doc.text(recipientName, config.namePos.x, config.namePos.y, { align: 'center' });
+
+    // 3. Custom Body Text Overlay if specified
+    if (customBodyText && customBodyText.trim().length > 0) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(32, 105, 233, 20, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor('#334155');
+      const lines = doc.splitTextToSize(customBodyText, 220);
+      doc.text(lines, 148.5, 110, { align: 'center' });
+    }
+
+    // 4. Right-Side Metadata Stacked Vertically (Cert ID & Issue Date)
+    const rightX = config.idPos.x;
+    // Certificate ID Label & Value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#64748B');
+    doc.text('Certificate ID:', rightX, 144);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor('#009B8E'); // template teal
+    doc.text(certId, rightX, 150);
+
+    // Issued on Label & Value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#64748B');
+    doc.text('Issued on:', rightX, 158);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor('#0F172A');
+    doc.text(formatCertDateFull(issueDate), rightX, 164);
+
+    return doc.output('blob');
+  }
+
+  // ── OTHER CERTIFICATE TYPES (UNTOUCHED LEGACY LAYOUT) ─────────────────────
+  // White backing box for legacy templates
+  doc.setFillColor(255, 255, 255);
+  doc.rect(130, 128, 35, 34, 'F');
+
+  // Render QR code
   doc.addImage(qrDataUrl, 'PNG', config.qrPos.x, config.qrPos.y, config.qrPos.size, config.qrPos.size);
 
-  // ── 4. Recipient Name (Centered & Auto-Scaled) ───────────────────────────
+  // Recipient Name
   doc.setFont('helvetica', 'bold');
   let nameFontSize = config.namePos.fontSize;
-  // Dynamic scaling: If name length exceeds 22 chars, scale down font size gracefully
   if (recipientName.length > 22) {
     nameFontSize = Math.max(16, nameFontSize - (recipientName.length - 22) * 0.55);
   }
@@ -88,34 +151,18 @@ export async function generateCertificatePDF({
   doc.setTextColor(config.namePos.color);
   doc.text(recipientName, config.namePos.x, config.namePos.y, { align: 'center' });
 
-  // ── 5. Optional Custom / Dynamic Body Text Overlay ───────────────────────
-  // If customBodyText or specific course/dates provided, render formatted text
-  if (customBodyText || courseTitle) {
-    const displayCourse = courseTitle || internshipField || "Web & Graphic Design";
-    const durationStr = courseDuration ? ` ${courseDuration}` : "";
-    const startStr = startDate ? formatCertDateFull(startDate) : "";
-    const endStr = completionDate ? formatCertDateFull(completionDate) : formatCertDateFull(issueDate);
-    const dateRangeStr = (startStr && endStr) ? `conducted from ${startStr} to ${endStr}` : `completed on ${endStr}`;
-
-    const bodyText = customBodyText ||
-      `This certificate is proudly presented in recognition of successfully completing the${durationStr} course in ${displayCourse}, demonstrating dedication, creativity, and practical skills. The course was ${dateRangeStr}, covering essential concepts, tools, and practical projects.`;
-
-    // Mask placeholder text area cleanly if replacing baked text
+  // Custom Body Text
+  if (customBodyText && customBodyText.trim().length > 0) {
     doc.setFillColor(255, 255, 255);
-    // Cover the middle paragraph zone between Y=104 and Y=124
     doc.rect(32, 105, 233, 20, 'F');
-
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor('#334155');
-
-    // Split text into lines spanning 220mm
-    const lines = doc.splitTextToSize(bodyText, 220);
+    const lines = doc.splitTextToSize(customBodyText, 220);
     doc.text(lines, 148.5, 110, { align: 'center' });
   }
 
-  // ── 6. Certificate ID & Issued Date Metadata Grid ────────────────────────
-  // Certificate ID (Left alignment metadata)
+  // Metadata Grid for Legacy Certificates
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor('#475569');
@@ -123,15 +170,13 @@ export async function generateCertificatePDF({
 
   doc.setFont('courier', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(config.idPos.color);   // template teal #009B8E
+  doc.setTextColor(config.idPos.color);
   doc.text(certId, 64, 140);
 
-  // Draw line under cert ID
   doc.setDrawColor('#009B8E');
   doc.setLineWidth(0.3);
   doc.line(30, 142, 135, 142);
 
-  // Issued Date (Right alignment metadata)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor('#475569');
@@ -142,7 +187,6 @@ export async function generateCertificatePDF({
   doc.setTextColor(config.datePos.color);
   doc.text(formatCertDateFull(issueDate), 191, 140);
 
-  // Draw line under date
   doc.setDrawColor('#009B8E');
   doc.setLineWidth(0.3);
   doc.line(165, 142, 260, 142);

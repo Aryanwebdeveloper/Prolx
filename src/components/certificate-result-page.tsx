@@ -9,9 +9,10 @@ import ProlxNavbar from "@/components/prolx-navbar";
 import ProlxFooter from "@/components/prolx-footer";
 import { formatCertDate, getCertStatus, formatCertDateFull } from "@/lib/certificates";
 import { generateCertificatePDF } from "@/lib/certificate-generator";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { saveAs } from "file-saver";
+import QRCode from "qrcode";
 
 type CertStatus = "active" | "inactive" | "expired" | "not_found" | "revoked";
 
@@ -112,8 +113,17 @@ export default function CertificateResultPage({ certId, cert, status }: Props) {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!cert?.id) return;
+    const url = cert.qr_code_url || (typeof window !== "undefined" ? `${window.location.origin}/verify-certificate/${cert.id}` : `https://prolx.cloud/verify-certificate/${cert.id}`);
+    QRCode.toDataURL(url, { margin: 1, width: 250, color: { dark: "#0F172A", light: "#FFFFFF" } })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [cert?.id, cert?.qr_code_url]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,16 +327,49 @@ export default function CertificateResultPage({ certId, cert, status }: Props) {
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Official Certificate Template Preview</span>
                   </div>
                   <div className="relative max-w-xl w-full rounded-2xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 bg-white">
-                    <img src="/CourseresUIUXCertificate.png" alt="Prolx Certificate Template" className="w-full object-contain" />
-                    {/* Dynamic Overlay Text */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none text-center">
-                      <div className="mt-[28%] font-bold text-[#0F172A] text-sm sm:text-base tracking-wide uppercase" style={{ fontSize: cert.recipient_name.length > 20 ? '12px' : '16px' }}>
-                        {cert.recipient_name}
+                    <img src={cert.certificate_type && cert.certificate_type !== 'course_completion' ? (CERTIFICATE_CONFIGS[cert.certificate_type as CertificateType]?.templatePath || "/CourseresUIUXCertificate.png") : "/CourseresUIUXCertificate.png"} alt="Prolx Certificate Template" className="w-full object-contain" />
+                    
+                    {/* Dynamic Overlay Text for Course Completion */}
+                    {(!cert.certificate_type || cert.certificate_type === 'course_completion') ? (
+                      <div className="absolute inset-0 pointer-events-none">
+                        {/* Student Name Centered in Name Box */}
+                        <div
+                          className="absolute left-0 right-0 top-[43.5%] -translate-y-1/2 text-center font-extrabold text-[#0F172A] tracking-wide uppercase px-8"
+                          style={{
+                            fontSize: cert.recipient_name.length > 35 ? '10px' : cert.recipient_name.length > 25 ? '12px' : cert.recipient_name.length > 18 ? '14px' : '16px'
+                          }}
+                        >
+                          {cert.recipient_name}
+                        </div>
+
+                        {/* Dynamic QR Code Overlay (Centered in ribbon, completely covering static background QR) */}
+                        <div className="absolute left-1/2 top-[77.1%] -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded-sm shadow-sm flex items-center justify-center w-[15.5%] aspect-square border border-slate-100/50">
+                          {qrDataUrl ? (
+                            <img src={qrDataUrl} alt="Certificate Verification QR Code" className="w-full h-full object-contain" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-100 flex items-center justify-center text-[7px] text-slate-400 font-mono">QR</div>
+                          )}
+                        </div>
+
+                        {/* Right-Side Metadata (Stacked Vertically: Cert ID & Issue Date) */}
+                        <div className="absolute left-[65.5%] top-[65%] text-left text-[7px] sm:text-[9.5px] font-sans leading-tight">
+                          <div className="font-bold text-slate-500 text-[6.5px] sm:text-[8px]">Certificate ID:</div>
+                          <div className="font-bold text-[#009B8E] font-mono mb-1.5">{cert.id}</div>
+                          <div className="font-bold text-slate-500 text-[6.5px] sm:text-[8px]">Issued on:</div>
+                          <div className="font-bold text-[#0F172A]">{formatCertDateFull(cert.issue_date)}</div>
+                        </div>
                       </div>
-                      <div className="mb-[15%] text-[9px] sm:text-[11px] text-slate-700 max-w-[80%] mx-auto leading-tight">
-                        Successfully completed <strong>{cert.title}</strong>
+                    ) : (
+                      /* Legacy / Other Certificate Overlays */
+                      <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none text-center">
+                        <div className="mt-[28%] font-bold text-[#0F172A] text-sm sm:text-base tracking-wide uppercase" style={{ fontSize: cert.recipient_name.length > 20 ? '12px' : '16px' }}>
+                          {cert.recipient_name}
+                        </div>
+                        <div className="mb-[15%] text-[9px] sm:text-[11px] text-slate-700 max-w-[80%] mx-auto leading-tight">
+                          Successfully completed <strong>{cert.title}</strong>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}

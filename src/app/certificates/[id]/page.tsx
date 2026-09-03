@@ -16,12 +16,13 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function LegacyCertificateVerificationPage({ params }: Props) {
   const { id } = await params;
-  const { found, certificate } = await verifyCertificate(id);
+  const cleanId = (id || "").trim().toUpperCase();
+  const { found, certificate } = await verifyCertificate(cleanId);
 
   if (!found || !certificate) {
     return (
       <CertificateResultPage
-        certId={id}
+        certId={cleanId}
         cert={null}
         status="not_found"
       />
@@ -29,17 +30,17 @@ export default async function LegacyCertificateVerificationPage({ params }: Prop
   }
 
   const cert = {
-    id: certificate.certificate_id || id,
+    id: certificate.certificate_id || cleanId,
     title: certificate.course_title || certificate.title || "Certificate of Completion",
     description: certificate.description || undefined,
-    recipient_name: certificate.recipient_name || "Student Name",
+    recipient_name: certificate.recipient_name || certificate.student_name || "Student Name",
     recipient_email: certificate.recipient_email || undefined,
     issue_date: certificate.issue_date || certificate.issued_at || new Date().toISOString().split("T")[0],
     expiry_date: certificate.valid_until || certificate.expiry_date || undefined,
     status: certificate.status || "issued",
-    issued_by: certificate.issued_by || "Prolx Digital Agency",
-    category: certificate.certificate_type ? certificate.certificate_type.replace(/_/g, " ").toUpperCase() : "Course Completion",
-    certificate_type: certificate.certificate_type,
+    issued_by: certificate.issued_by || "Prolx Digital Agency & Prolx Academy",
+    category: certificate.certificate_type ? certificate.certificate_type.replace(/_/g, " ").toUpperCase() : "COURSE COMPLETION",
+    certificate_type: certificate.certificate_type || "course_completion",
     internship_field: certificate.internship_field || (certificate.course ? certificate.course.title : undefined),
     revoked_at: certificate.revoked_at,
     revoked_reason: certificate.revoked_reason,
@@ -47,7 +48,7 @@ export default async function LegacyCertificateVerificationPage({ params }: Prop
     file_url: certificate.file_url || null,
     qr_code_url: certificate.qr_code_url || null,
     start_date: certificate.start_date,
-    completion_date: certificate.completion_date,
+    completion_date: certificate.completion_date || certificate.issue_date,
     course_duration: certificate.course_duration,
   };
 
@@ -55,7 +56,7 @@ export default async function LegacyCertificateVerificationPage({ params }: Prop
 
   return (
     <CertificateResultPage
-      certId={id}
+      certId={cert.id}
       cert={cert}
       status={computedStatus}
     />

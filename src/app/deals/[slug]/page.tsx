@@ -1,5 +1,6 @@
 import React from "react";
 import Metadata from "next";
+import { redirect } from "next/navigation";
 import { getCampaignBySlug } from "@/app/deals-actions";
 import DealsLandingClient from "@/components/deals/deals-landing-client";
 
@@ -68,6 +69,10 @@ export default async function DealCampaignPage({ params, searchParams }: PagePro
 
   const slug = resolvedParams.slug || "14-august";
   const campaign = await getCampaignBySlug(slug);
+
+  if (!campaign || !campaign.is_active) {
+    redirect("/pricing");
+  }
 
   return (
     <main>

@@ -61,9 +61,16 @@ const SHARED = {
   qrPos:   { x: 138.5, y: 133, size: 21 },
 };
 
+const COURSE_COMPLETION_CONFIG = {
+  namePos: { x: 148.5, y: 96, fontSize: 28, color: '#0F172A' },
+  idPos:   { x: 195,   y: 150, fontSize: 10, color: '#009B8E' },
+  datePos: { x: 195,   y: 164, fontSize: 10, color: '#0F172A' },
+  qrPos:   { x: 133.5, y: 147.0, size: 30 },
+};
+
 export const CERTIFICATE_CONFIGS: Record<CertificateType, CertificateConfig> = {
   // ── Academy / Completion ────────────────────────────────────────────────
-  course_completion:     { type: 'course_completion',     displayName: 'Certificate of Completion',              templatePath: '/CourseresUIUXCertificate.png',                             ...SHARED },
+  course_completion:     { type: 'course_completion',     displayName: 'Certificate of Completion',              templatePath: '/CourseresUIUXCertificate.png',                             ...COURSE_COMPLETION_CONFIG },
   training_completion:   { type: 'training_completion',   displayName: 'Training Completion Certificate',        templatePath: '/caertificate OF TRENNING COMPTION-01.png',                 ...SHARED },
   internship_completion: { type: 'internship_completion', displayName: 'Internship Completion Certificate',      templatePath: '/caertificate OF INTERSHIP COMPITATION for all.png',        ...SHARED },
   participation:         { type: 'participation',         displayName: 'Certificate of Participation',           templatePath: '/CourseresUIUXCertificate.png',                             ...SHARED },

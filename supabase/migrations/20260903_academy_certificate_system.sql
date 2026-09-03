@@ -32,6 +32,30 @@ CREATE TABLE IF NOT EXISTS academy_students (
   updated_at          TIMESTAMPTZ DEFAULT now()
 );
 
+-- Ensure all columns exist on academy_students if table pre-existed
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS student_code TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS whatsapp TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS education TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS current_profession TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES academy_courses(id) ON DELETE SET NULL;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES academy_batches(id) ON DELETE SET NULL;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS enrollment_id UUID REFERENCES academy_enrollments(id) ON DELETE SET NULL;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS enrollment_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS course_start_date DATE;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS completion_date DATE;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS attendance_pct NUMERIC(5,2) DEFAULT 0.0;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS result_score NUMERIC(5,2) DEFAULT 0.0;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS instructor_name TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE academy_students ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 -- ── 2. CERTIFICATE ELIGIBILITY REQUIREMENTS ON COURSES ─────────────────
 ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS min_attendance_pct NUMERIC(5,2) DEFAULT 75.0;
 ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS min_result_score NUMERIC(5,2) DEFAULT 60.0;
@@ -80,23 +104,23 @@ VALUES (
 -- ── 4. ACADEMY MASTER CERTIFICATES TABLE ───────────────────────────────
 CREATE TABLE IF NOT EXISTS academy_certificates (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  certificate_id      TEXT UNIQUE NOT NULL, -- e.g. PRLX-CERT-26-000001
+  certificate_id      TEXT UNIQUE, -- e.g. PRLX-CERT-26-000001
   student_id          UUID REFERENCES academy_students(id) ON DELETE SET NULL,
   user_id             UUID REFERENCES profiles(id) ON DELETE SET NULL,
   enrollment_id       UUID REFERENCES academy_enrollments(id) ON DELETE SET NULL,
   course_id           UUID REFERENCES academy_courses(id) ON DELETE SET NULL,
   batch_id            UUID REFERENCES academy_batches(id) ON DELETE SET NULL,
   template_id         UUID REFERENCES academy_certificate_templates(id) ON DELETE SET NULL,
-  recipient_name      TEXT NOT NULL,
+  recipient_name      TEXT,
   recipient_email     TEXT,
-  course_title        TEXT NOT NULL,
+  course_title        TEXT,
   course_duration     TEXT,
   start_date          DATE,
   completion_date     DATE,
   issue_date          DATE DEFAULT CURRENT_DATE,
   valid_until         DATE,
   certificate_type    TEXT DEFAULT 'course_completion',
-  status              TEXT DEFAULT 'issued' CHECK (status IN ('draft', 'eligible', 'generated', 'issued', 'downloaded', 'verified', 'revoked', 'cancelled')),
+  status              TEXT DEFAULT 'issued',
   is_published        BOOLEAN DEFAULT true,
   is_uploaded         BOOLEAN DEFAULT false,
   file_url            TEXT,
@@ -108,6 +132,47 @@ CREATE TABLE IF NOT EXISTS academy_certificates (
   created_at          TIMESTAMPTZ DEFAULT now(),
   updated_at          TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure all columns exist on academy_certificates if table pre-existed from an earlier migration
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS certificate_id TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS student_id UUID REFERENCES academy_students(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS enrollment_id UUID REFERENCES academy_enrollments(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES academy_courses(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES academy_batches(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES academy_certificate_templates(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS recipient_name TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS recipient_email TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS course_title TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS course_duration TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS start_date DATE;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS completion_date DATE;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS issue_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS valid_until DATE;
+ALTER TABLE academy_certificates DROP CONSTRAINT IF EXISTS academy_certificates_certificate_type_check;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS certificate_type TEXT DEFAULT 'course_completion';
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'issued';
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT true;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS is_uploaded BOOLEAN DEFAULT false;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS qr_code_url TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS revoked_reason TEXT;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE academy_certificates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- Copy recipient_name from legacy student_name column if present and drop NOT NULL constraint
+DO $$ 
+BEGIN 
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='academy_certificates' AND column_name='student_name'
+  ) THEN 
+    ALTER TABLE academy_certificates ALTER COLUMN student_name DROP NOT NULL;
+    UPDATE academy_certificates SET recipient_name = student_name WHERE recipient_name IS NULL; 
+  END IF; 
+END $$;
 
 -- Ensure public.certificates table columns are extended if legacy query relies on public.certificates
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS certificate_type TEXT DEFAULT 'internship';
@@ -249,3 +314,4 @@ BEGIN
   RETURN v_cert_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
